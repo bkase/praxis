@@ -1,7 +1,7 @@
-use anyhow::Result;
-use std::path::PathBuf;
 use crate::models::AnalysisResult;
+use anyhow::Result;
 use async_trait::async_trait;
+use std::path::{Path, PathBuf};
 
 /// Environment holds all dependencies with side effects
 pub struct Environment {
@@ -19,39 +19,39 @@ impl Environment {
             clock: Box::new(RealClock),
         })
     }
-    
+
     /// Get the path to session.json
     pub fn get_session_path(&self) -> Result<PathBuf> {
-        let mut path = dirs::data_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not find data directory"))?;
+        let mut path =
+            dirs::data_dir().ok_or_else(|| anyhow::anyhow!("Could not find data directory"))?;
         path.push("Momentum");
-        
+
         // Ensure directory exists
         std::fs::create_dir_all(&path)?;
-        
+
         path.push("session.json");
         Ok(path)
     }
-    
+
     /// Get the directory for reflection files
     pub fn get_reflections_dir(&self) -> Result<PathBuf> {
-        let mut path = dirs::data_dir()
-            .ok_or_else(|| anyhow::anyhow!("Could not find data directory"))?;
+        let mut path =
+            dirs::data_dir().ok_or_else(|| anyhow::anyhow!("Could not find data directory"))?;
         path.push("Momentum");
         path.push("reflections");
-        
+
         // Ensure directory exists
         std::fs::create_dir_all(&path)?;
-        
+
         Ok(path)
     }
 }
 
 /// File system operations trait
 pub trait FileSystem: Send + Sync {
-    fn read(&self, path: &PathBuf) -> Result<String>;
-    fn write(&self, path: &PathBuf, content: &str) -> Result<()>;
-    fn delete(&self, path: &PathBuf) -> Result<()>;
+    fn read(&self, path: &Path) -> Result<String>;
+    fn write(&self, path: &Path, content: &str) -> Result<()>;
+    fn delete(&self, path: &Path) -> Result<()>;
 }
 
 /// API client trait for Claude API
@@ -70,15 +70,15 @@ pub trait Clock: Send + Sync {
 struct RealFileSystem;
 
 impl FileSystem for RealFileSystem {
-    fn read(&self, path: &PathBuf) -> Result<String> {
+    fn read(&self, path: &Path) -> Result<String> {
         Ok(std::fs::read_to_string(path)?)
     }
-    
-    fn write(&self, path: &PathBuf, content: &str) -> Result<()> {
+
+    fn write(&self, path: &Path, content: &str) -> Result<()> {
         Ok(std::fs::write(path, content)?)
     }
-    
-    fn delete(&self, path: &PathBuf) -> Result<()> {
+
+    fn delete(&self, path: &Path) -> Result<()> {
         Ok(std::fs::remove_file(path)?)
     }
 }
@@ -92,7 +92,7 @@ impl RealApiClient {
     fn new() -> Result<Self> {
         let api_key = std::env::var("ANTHROPIC_API_KEY")
             .map_err(|_| anyhow::anyhow!("ANTHROPIC_API_KEY environment variable not set"))?;
-        
+
         Ok(Self {
             _client: reqwest::Client::new(),
             _api_key: api_key,
@@ -103,8 +103,8 @@ impl RealApiClient {
 #[async_trait]
 impl ApiClient for RealApiClient {
     async fn analyze(&self, content: &str) -> Result<AnalysisResult> {
-            let prompt = format!(
-                r#"You are an AI productivity coach analyzing a focus session reflection. 
+        let prompt = format!(
+            r#"You are an AI productivity coach analyzing a focus session reflection. 
                 
 Please analyze the following reflection and provide:
 1. A brief summary of what happened during the session
@@ -120,8 +120,8 @@ Respond in JSON format with these exact fields:
     "suggestion": "specific actionable suggestion",
     "reasoning": "why this suggestion would help"
 }}"#,
-                content
-            );
+            content
+        );
 
         let request_body = serde_json::json!({
             "model": "claude-3-5-sonnet-20241022",
@@ -133,7 +133,8 @@ Respond in JSON format with these exact fields:
             "temperature": 0.7
         });
 
-        let response = self._client
+        let response = self
+            ._client
             .post("https://api.anthropic.com/v1/messages")
             .header("x-api-key", &self._api_key)
             .header("anthropic-version", "2023-06-01")
@@ -148,19 +149,19 @@ Respond in JSON format with these exact fields:
         }
 
         let response_json: serde_json::Value = response.json().await?;
-        
+
         // Extract the content from Claude's response with safe navigation
         let claude_response = response_json
             .get("content")
             .and_then(|c| c.as_array())
-            .and_then(|a| a.get(0))
+            .and_then(|a| a.first())
             .and_then(|t| t.get("text"))
             .and_then(|s| s.as_str())
             .ok_or_else(|| anyhow::anyhow!("Could not extract text from Claude API response"))?;
 
         // Parse the JSON response from Claude
         let analysis: AnalysisResult = serde_json::from_str(claude_response)?;
-        
+
         Ok(analysis)
     }
 }

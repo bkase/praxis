@@ -26,6 +26,7 @@ impl State {
     }
     
     /// Save state to session.json
+    #[allow(dead_code)]
     pub fn save(&self, env: &Environment) -> Result<()> {
         match self {
             State::Idle => {

@@ -13,8 +13,9 @@ final class AppFeatureTests: XCTestCase {
         }
         
         // Start a session
-        await store.send(.startButtonTapped(goal: "Test Goal", minutes: 30)) {
-            $0.prepareForLoading()
+        await store.send(.startButtonTapped(goal: "Test Goal", minutes: Minutes(30))) {
+            $0.isLoading = true
+            $0.error = nil
         }
         
         // Receive successful response
@@ -48,7 +49,8 @@ final class AppFeatureTests: XCTestCase {
         
         // Stop the session
         await store.send(.stopButtonTapped) {
-            $0.prepareForLoading()
+            $0.isLoading = true
+            $0.error = nil
         }
         
         // Receive successful response
@@ -72,7 +74,8 @@ final class AppFeatureTests: XCTestCase {
         
         // Analyze the reflection
         await store.send(.analyzeButtonTapped) {
-            $0.prepareForLoading()
+            $0.isLoading = true
+            $0.error = nil
         }
         
         // Receive analysis result
@@ -100,14 +103,15 @@ final class AppFeatureTests: XCTestCase {
         }
         
         // Try to start a session
-        await store.send(.startButtonTapped(goal: "Test Goal", minutes: 30)) {
-            $0.prepareForLoading()
+        await store.send(.startButtonTapped(goal: "Test Goal", minutes: Minutes(30))) {
+            $0.isLoading = true
+            $0.error = nil
         }
         
         // Receive error response
         await store.receive(.rustCoreResponse(.failure(RustCoreError.binaryNotFound))) {
             $0.isLoading = false
-            $0.errorMessage = "Momentum CLI binary not found in app bundle"
+            $0.error = .rustCore(.binaryNotFound)
         }
     }
     
@@ -122,8 +126,8 @@ final class AppFeatureTests: XCTestCase {
         }
         
         // Try to start another session
-        await store.send(.startButtonTapped(goal: "New Goal", minutes: 25)) {
-            $0.errorMessage = "A session is already active"
+        await store.send(.startButtonTapped(goal: "New Goal", minutes: Minutes(25))) {
+            $0.error = .sessionAlreadyActive
         }
     }
     
@@ -134,7 +138,7 @@ final class AppFeatureTests: XCTestCase {
         
         // Try to stop when no session is active
         await store.send(.stopButtonTapped) {
-            $0.errorMessage = "No active session to stop"
+            $0.error = .noActiveSession
         }
     }
     
@@ -145,7 +149,7 @@ final class AppFeatureTests: XCTestCase {
         
         // Try to analyze when no reflection exists
         await store.send(.analyzeButtonTapped) {
-            $0.errorMessage = "No reflection file to analyze"
+            $0.error = .noReflectionToAnalyze
         }
     }
     
@@ -158,8 +162,9 @@ final class AppFeatureTests: XCTestCase {
         }
         
         // 1. Start session
-        await store.send(.startButtonTapped(goal: "Full Flow Test", minutes: 20)) {
-            $0.prepareForLoading()
+        await store.send(.startButtonTapped(goal: "Full Flow Test", minutes: Minutes(20))) {
+            $0.isLoading = true
+            $0.error = nil
         }
         
         await store.receive(.rustCoreResponse(.success(.sessionStarted(SessionData(
@@ -178,7 +183,8 @@ final class AppFeatureTests: XCTestCase {
         
         // 2. Stop session
         await store.send(.stopButtonTapped) {
-            $0.prepareForLoading()
+            $0.isLoading = true
+            $0.error = nil
         }
         
         await store.receive(.rustCoreResponse(.success(.sessionStopped(reflectionPath: "/tmp/test-reflection.md")))) {
@@ -188,7 +194,8 @@ final class AppFeatureTests: XCTestCase {
         
         // 3. Analyze reflection
         await store.send(.analyzeButtonTapped) {
-            $0.prepareForLoading()
+            $0.isLoading = true
+            $0.error = nil
         }
         
         await store.receive(.rustCoreResponse(.success(.analysisComplete(AnalysisResult(
@@ -207,20 +214,20 @@ final class AppFeatureTests: XCTestCase {
         // 4. Reset to idle
         await store.send(.resetToIdle) {
             $0.session = .idle
-            $0.errorMessage = nil
+            $0.error = nil
             $0.isLoading = false
         }
     }
     
     func testClearError() async {
         let store = TestStore(
-            initialState: AppFeature.State(errorMessage: "Some error")
+            initialState: AppFeature.State(error: .unexpected("Some error"))
         ) {
             AppFeature()
         }
         
         await store.send(.clearError) {
-            $0.errorMessage = nil
+            $0.error = nil
         }
     }
 }

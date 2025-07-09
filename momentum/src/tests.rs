@@ -1,9 +1,9 @@
 #[cfg(test)]
-mod tests {
+mod unit_tests {
     use crate::{action::Action, environment::*, models::*, state::State, update::update};
+    use async_trait::async_trait;
     use std::collections::HashMap;
     use std::sync::Mutex;
-    use async_trait::async_trait;
 
     // Mock implementations for testing
     struct MockFileSystem {
@@ -19,7 +19,7 @@ mod tests {
     }
 
     impl FileSystem for MockFileSystem {
-        fn read(&self, path: &std::path::PathBuf) -> anyhow::Result<String> {
+        fn read(&self, path: &std::path::Path) -> anyhow::Result<String> {
             let files = self.files.lock().unwrap();
             files
                 .get(&path.to_string_lossy().to_string())
@@ -27,13 +27,13 @@ mod tests {
                 .ok_or_else(|| anyhow::anyhow!("File not found"))
         }
 
-        fn write(&self, path: &std::path::PathBuf, content: &str) -> anyhow::Result<()> {
+        fn write(&self, path: &std::path::Path, content: &str) -> anyhow::Result<()> {
             let mut files = self.files.lock().unwrap();
             files.insert(path.to_string_lossy().to_string(), content.to_string());
             Ok(())
         }
 
-        fn delete(&self, path: &std::path::PathBuf) -> anyhow::Result<()> {
+        fn delete(&self, path: &std::path::Path) -> anyhow::Result<()> {
             let mut files = self.files.lock().unwrap();
             files.remove(&path.to_string_lossy().to_string());
             Ok(())
@@ -157,7 +157,10 @@ mod tests {
         match effect {
             Some(crate::effects::Effect::Composite(effects)) => {
                 assert_eq!(effects.len(), 2);
-                assert!(matches!(effects[0], crate::effects::Effect::CreateReflection { .. }));
+                assert!(matches!(
+                    effects[0],
+                    crate::effects::Effect::CreateReflection { .. }
+                ));
                 assert!(matches!(effects[1], crate::effects::Effect::ClearState));
             }
             _ => panic!("Expected Composite effect with CreateReflection and ClearState"),

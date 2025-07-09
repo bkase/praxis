@@ -151,59 +151,71 @@ extension DependencyValues {
 
 // MARK: - Helper Functions
 
+@MainActor
 private func executeCommand(_ command: String, arguments: [String]) async throws -> (output: String?, error: String?) {
-    let task = Process()
-    
-    // Get the path to the momentum binary in the app bundle
-    #if DEBUG
-    // During development, try to use the binary from the build directory first
-    let devPath = "\(FileManager.default.currentDirectoryPath)/momentum/target/release/momentum"
-    if FileManager.default.fileExists(atPath: devPath) {
-        task.executableURL = URL(fileURLWithPath: devPath)
-    } else if let binaryPath = Bundle.main.path(forResource: "momentum", ofType: nil) {
-        task.executableURL = URL(fileURLWithPath: binaryPath)
-    } else {
-        throw RustCoreError.binaryNotFound
+    try await withCheckedThrowingContinuation { continuation in
+        Task {
+            let task = Process()
+            
+            // Get the path to the momentum binary in the app bundle
+            #if DEBUG
+            // During development, try to use the binary from the build directory first
+            let devPath = "\(FileManager.default.currentDirectoryPath)/momentum/target/release/momentum"
+            if FileManager.default.fileExists(atPath: devPath) {
+                task.executableURL = URL(fileURLWithPath: devPath)
+            } else if let binaryPath = Bundle.main.path(forResource: "momentum", ofType: nil) {
+                task.executableURL = URL(fileURLWithPath: binaryPath)
+            } else {
+                continuation.resume(throwing: RustCoreError.binaryNotFound)
+                return
+            }
+            #else
+            // In release builds, only look in the app bundle
+            guard let binaryPath = Bundle.main.path(forResource: "momentum", ofType: nil) else {
+                continuation.resume(throwing: RustCoreError.binaryNotFound)
+                return
+            }
+            task.executableURL = URL(fileURLWithPath: binaryPath)
+            #endif
+            
+            task.arguments = [command] + arguments
+            
+            // Set environment variables
+            var environment = ProcessInfo.processInfo.environment
+            // Set a dummy API key if not present (the mock implementation doesn't use it)
+            if environment["ANTHROPIC_API_KEY"] == nil {
+                environment["ANTHROPIC_API_KEY"] = "dummy-key-for-development"
+            }
+            task.environment = environment
+            
+            let outputPipe = Pipe()
+            let errorPipe = Pipe()
+            
+            task.standardOutput = outputPipe
+            task.standardError = errorPipe
+            
+            task.terminationHandler = { process in
+                let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
+                let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
+                
+                let output = String(data: outputData, encoding: .utf8)
+                let error = String(data: errorData, encoding: .utf8)
+                
+                if process.terminationStatus != 0 {
+                    let stderr = error?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Unknown error"
+                    continuation.resume(throwing: RustCoreError.commandFailed(command: command, stderr: stderr))
+                } else {
+                    continuation.resume(returning: (output, error))
+                }
+            }
+            
+            do {
+                try task.run()
+            } catch {
+                continuation.resume(throwing: error)
+            }
+        }
     }
-    #else
-    // In release builds, only look in the app bundle
-    guard let binaryPath = Bundle.main.path(forResource: "momentum", ofType: nil) else {
-        throw RustCoreError.binaryNotFound
-    }
-    task.executableURL = URL(fileURLWithPath: binaryPath)
-    #endif
-    
-    task.arguments = [command] + arguments
-    
-    // Set environment variables
-    var environment = ProcessInfo.processInfo.environment
-    // Set a dummy API key if not present (the mock implementation doesn't use it)
-    if environment["ANTHROPIC_API_KEY"] == nil {
-        environment["ANTHROPIC_API_KEY"] = "dummy-key-for-development"
-    }
-    task.environment = environment
-    
-    let outputPipe = Pipe()
-    let errorPipe = Pipe()
-    
-    task.standardOutput = outputPipe
-    task.standardError = errorPipe
-    
-    try task.run()
-    task.waitUntilExit()
-    
-    let outputData = outputPipe.fileHandleForReading.readDataToEndOfFile()
-    let errorData = errorPipe.fileHandleForReading.readDataToEndOfFile()
-    
-    let output = String(data: outputData, encoding: .utf8)
-    let error = String(data: errorData, encoding: .utf8)
-    
-    if task.terminationStatus != 0 {
-        let stderr = error?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Unknown error"
-        throw RustCoreError.commandFailed(command: command, stderr: stderr)
-    }
-    
-    return (output, error)
 }
 
 private func loadSession(from path: String) throws -> SessionData {

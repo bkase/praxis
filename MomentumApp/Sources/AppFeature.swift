@@ -1,5 +1,6 @@
 import ComposableArchitecture
 import Foundation
+import Observation
 
 @Reducer
 struct AppFeature {
@@ -7,85 +8,102 @@ struct AppFeature {
     struct State: Equatable {
         var session: SessionState = .idle
         var isLoading = false
-        var errorMessage: String?
-        
-        mutating func prepareForLoading() {
-            isLoading = true
-            errorMessage = nil
+        var error: AppError?
+
+        var errorMessage: String? {
+            error?.errorDescription
         }
+
+        var errorRecovery: String? {
+            error?.recoverySuggestion
+        }
+
     }
-    
+
     enum Action: Equatable {
-        case startButtonTapped(goal: String, minutes: Int)
+        case startButtonTapped(goal: Goal, minutes: Minutes)
         case stopButtonTapped
         case analyzeButtonTapped
         case rustCoreResponse(TaskResult<RustCoreResponse>)
         case clearError
         case resetToIdle
+        case cancelCurrentOperation
     }
-    
+
     enum RustCoreResponse: Equatable {
         case sessionStarted(SessionData)
         case sessionStopped(reflectionPath: String)
         case analysisComplete(AnalysisResult)
     }
-    
+
     @Dependency(\.rustCoreClient) var rustCoreClient
-    
+
+    enum CancelID { case rustOperation }
+
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
             case let .startButtonTapped(goal, minutes):
                 guard case .idle = state.session else {
-                    state.errorMessage = "A session is already active"
+                    state.error = .sessionAlreadyActive
                     return .none
                 }
-                
-                state.prepareForLoading()
-                
+
+                state.isLoading = true
+                state.error = nil
+
                 return .run { send in
-                    await send(.rustCoreResponse(
-                        TaskResult {
-                            .sessionStarted(try await rustCoreClient.start(goal, minutes))
-                        }
-                    ))
+                    await send(
+                        .rustCoreResponse(
+                            await TaskResult {
+                                try await .sessionStarted(
+                                    rustCoreClient.start(goal.value, minutes.value))
+                            }
+                        ))
                 }
-                
+                .cancellable(id: CancelID.rustOperation)
+
             case .stopButtonTapped:
                 guard case .active = state.session else {
-                    state.errorMessage = "No active session to stop"
+                    state.error = .noActiveSession
                     return .none
                 }
-                
-                state.prepareForLoading()
-                
+
+                state.isLoading = true
+                state.error = nil
+
                 return .run { send in
-                    await send(.rustCoreResponse(
-                        TaskResult {
-                            .sessionStopped(reflectionPath: try await rustCoreClient.stop())
-                        }
-                    ))
+                    await send(
+                        .rustCoreResponse(
+                            await TaskResult {
+                                try await .sessionStopped(reflectionPath: rustCoreClient.stop())
+                            }
+                        ))
                 }
-                
+                .cancellable(id: CancelID.rustOperation)
+
             case .analyzeButtonTapped:
                 guard case let .awaitingAnalysis(reflectionPath) = state.session else {
-                    state.errorMessage = "No reflection file to analyze"
+                    state.error = .noReflectionToAnalyze
                     return .none
                 }
-                
-                state.prepareForLoading()
-                
+
+                state.isLoading = true
+                state.error = nil
+
                 return .run { send in
-                    await send(.rustCoreResponse(
-                        TaskResult {
-                            .analysisComplete(try await rustCoreClient.analyze(reflectionPath))
-                        }
-                    ))
+                    await send(
+                        .rustCoreResponse(
+                            await TaskResult {
+                                try await .analysisComplete(rustCoreClient.analyze(reflectionPath))
+                            }
+                        ))
                 }
-                
+                .cancellable(id: CancelID.rustOperation)
+
             case let .rustCoreResponse(.success(response)):
                 state.isLoading = false
-                
+
                 switch response {
                 case let .sessionStarted(sessionData):
                     state.session = .active(
@@ -93,30 +111,38 @@ struct AppFeature {
                         startTime: Date(timeIntervalSince1970: TimeInterval(sessionData.startTime)),
                         expectedMinutes: sessionData.timeExpected
                     )
-                    
+
                 case let .sessionStopped(reflectionPath):
                     state.session = .awaitingAnalysis(reflectionPath: reflectionPath)
-                    
+
                 case let .analysisComplete(analysis):
                     state.session = .analyzed(analysis: analysis)
                 }
-                
+
                 return .none
-                
+
             case let .rustCoreResponse(.failure(error)):
                 state.isLoading = false
-                state.errorMessage = error.localizedDescription
+                if let rustError = error as? RustCoreError {
+                    state.error = .rustCore(rustError)
+                } else {
+                    state.error = .unexpected(error.localizedDescription)
+                }
                 return .none
-                
+
             case .clearError:
-                state.errorMessage = nil
+                state.error = nil
                 return .none
-                
+
             case .resetToIdle:
                 state.session = .idle
-                state.errorMessage = nil
+                state.error = nil
                 state.isLoading = false
-                return .none
+                return .cancel(id: CancelID.rustOperation)
+
+            case .cancelCurrentOperation:
+                state.isLoading = false
+                return .cancel(id: CancelID.rustOperation)
             }
         }
     }
@@ -132,3 +158,4 @@ enum SessionState: Equatable {
 }
 
 // AnalysisResult is now defined in RustCoreClient.swift
+

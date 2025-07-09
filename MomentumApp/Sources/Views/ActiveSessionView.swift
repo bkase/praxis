@@ -2,7 +2,7 @@ import SwiftUI
 import ComposableArchitecture
 
 struct ActiveSessionView: View {
-    let store: StoreOf<AppFeature>
+    @Bindable var store: StoreOf<AppFeature>
     let goal: String
     let startTime: Date
     let expectedMinutes: UInt64
@@ -10,15 +10,19 @@ struct ActiveSessionView: View {
     @State private var currentTime = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
-    var elapsedTime: TimeInterval {
+    private var elapsedTime: TimeInterval {
         currentTime.timeIntervalSince(startTime)
     }
     
-    var elapsedMinutes: Int {
+    private var elapsedMinutes: Int {
         Int(elapsedTime / 60)
     }
     
-    var elapsedFormatted: String {
+    private var progress: Double {
+        min(elapsedTime / (Double(expectedMinutes) * 60), 1.0)
+    }
+    
+    private var elapsedFormatted: String {
         let hours = Int(elapsedTime) / 3600
         let minutes = (Int(elapsedTime) % 3600) / 60
         let seconds = Int(elapsedTime) % 60
@@ -30,42 +34,72 @@ struct ActiveSessionView: View {
         }
     }
     
+    private var isOvertime: Bool {
+        elapsedMinutes > Int(expectedMinutes)
+    }
+    
     var body: some View {
-        WithViewStore(self.store, observe: { $0 }) { viewStore in
-            VStack(spacing: 20) {
-                VStack(spacing: 8) {
-                    Text("Active Session")
-                        .font(.headline)
-                    
-                    Text(goal)
-                        .font(.subheadline)
-                        .foregroundColor(.secondary)
-                        .multilineTextAlignment(.center)
-                }
+        VStack(spacing: 24) {
+            VStack(spacing: 12) {
+                Image(systemName: "timer")
+                    .font(.largeTitle)
+                    .foregroundStyle(.tint)
+                    .symbolEffect(.pulse, value: currentTime)
+                
+                Text("Active Session")
+                    .font(.headline)
+                
+                Text(goal)
+                    .font(.subheadline)
+                    .foregroundStyle(.secondary)
+                    .multilineTextAlignment(.center)
+                    .lineLimit(2)
+            }
+            
+            ZStack {
+                Circle()
+                    .stroke(.quaternary, lineWidth: 8)
+                
+                Circle()
+                    .trim(from: 0, to: progress)
+                    .stroke(
+                        isOvertime ? Color.orange : Color.accentColor,
+                        style: StrokeStyle(lineWidth: 8, lineCap: .round)
+                    )
+                    .rotationEffect(.degrees(-90))
+                    .animation(.linear(duration: 1), value: progress)
                 
                 Text(elapsedFormatted)
-                    .font(.system(size: 48, weight: .light, design: .monospaced))
-                    .onReceive(timer) { _ in
-                        currentTime = Date()
-                    }
-                
-                HStack(spacing: 12) {
-                    Label("\(elapsedMinutes) min", systemImage: "clock")
-                    Divider()
-                        .frame(height: 16)
-                    Label("Expected: \(expectedMinutes) min", systemImage: "target")
-                }
-                .font(.caption)
-                .foregroundColor(.secondary)
-                
-                Button("Stop Session") {
-                    viewStore.send(.stopButtonTapped)
-                }
-                .buttonStyle(.borderedProminent)
-                .controlSize(.large)
-                .disabled(viewStore.isLoading)
+                    .font(.system(size: 36, weight: .light, design: .monospaced))
+                    .contentTransition(.numericText())
             }
-            .padding(.vertical)
+            .frame(width: 180, height: 180)
+            .onReceive(timer) { _ in
+                withAnimation(.linear(duration: 0.5)) {
+                    currentTime = Date()
+                }
+            }
+            
+            HStack(spacing: 20) {
+                Label("\(elapsedMinutes) min", systemImage: "clock.fill")
+                    .foregroundStyle(isOvertime ? .orange : .secondary)
+                
+                Divider()
+                    .frame(height: 16)
+                
+                Label("Goal: \(expectedMinutes) min", systemImage: "target")
+                    .foregroundStyle(.secondary)
+            }
+            .font(.caption)
+            
+            Button(action: { store.send(.stopButtonTapped) }) {
+                Label("Stop Session", systemImage: "stop.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .controlSize(.large)
+            .disabled(store.isLoading)
+            .keyboardShortcut("s", modifiers: .command)
         }
     }
 }
