@@ -68,8 +68,8 @@ struct ContentView: View {
     @ViewBuilder
     private var sessionContentView: some View {
         switch store.session {
-        case .idle:
-            IdleView(store: store)
+        case .preparing:
+            PreparationView(store: store)
                 .transition(.opacity)
             
         case let .active(goal, startTime, expectedMinutes):

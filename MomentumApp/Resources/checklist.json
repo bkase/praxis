@@ -1,0 +1,11 @@
+[
+  { "id": "check-rested", "text": "Rested, if not take 10min to lie down" },
+  { "id": "check-hungry", "text": "Not hungry, if so, get a snack first" },
+  { "id": "check-time", "text": "Enough time set aside to not be rushed" },
+  { "id": "check-bathroom", "text": "Bathroom Break" },
+  { "id": "check-playlist", "text": "Choose a good playlist and be ready to start it" },
+  { "id": "check-disturb", "text": "Tell anyone around me to not disturb me for expected time" },
+  { "id": "check-materials", "text": "Materials for the task in place. Physical and Virtual" },
+  { "id": "check-water", "text": "Water or tea nearby" },
+  { "id": "check-start", "text": "Ready to start the timer" }
+]

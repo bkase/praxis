@@ -6,6 +6,7 @@ enum AppError: LocalizedError, Equatable {
     case noReflectionToAnalyze
     case rustCore(RustCoreError)
     case invalidInput(reason: String)
+    case other(String)
     case unexpected(String)
     
     var errorDescription: String? {
@@ -20,6 +21,8 @@ enum AppError: LocalizedError, Equatable {
             return error.errorDescription
         case .invalidInput(let reason):
             return reason
+        case .other(let message):
+            return message
         case .unexpected(let message):
             return "Unexpected error: \(message)"
         }
@@ -37,6 +40,8 @@ enum AppError: LocalizedError, Equatable {
             return "Check your API key and network connection"
         case .invalidInput:
             return "Please check your input and try again"
+        case .other:
+            return "Please try again"
         case .unexpected:
             return "Please try again or restart the app"
         }
