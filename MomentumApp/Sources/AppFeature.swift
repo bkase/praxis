@@ -1,14 +1,40 @@
 import ComposableArchitecture
 import Foundation
 import Observation
+import Sharing
 
 @Reducer
 struct AppFeature {
     @ObservableState
     struct State: Equatable {
-        var session: SessionState = .preparing(PreparationState())
+        @Shared(.sessionData) var sessionData: SessionData? = nil
+        @Shared(.lastGoal) var lastGoal = ""
+        @Shared(.lastTimeMinutes) var lastTimeMinutes = "30"
+        @Shared(.analysisHistory) var analysisHistory: [AnalysisResult] = []
+        
         var isLoading = false
         var error: AppError?
+        var reflectionPath: String?
+        
+        // Derive session state from shared data
+        var session: SessionState {
+            if let analysis = analysisHistory.last {
+                return .analyzed(analysis: analysis)
+            } else if let reflectionPath = reflectionPath {
+                return .awaitingAnalysis(reflectionPath: reflectionPath)
+            } else if let sessionData = sessionData {
+                return .active(
+                    goal: sessionData.goal,
+                    startTime: sessionData.startDate,
+                    expectedMinutes: sessionData.expectedMinutes
+                )
+            } else {
+                return .preparing(PreparationState(
+                    goal: lastGoal,
+                    timeInput: lastTimeMinutes
+                ))
+            }
+        }
         
         // For child reducer scope
         var preparation: PreparationFeature.State? {
@@ -17,8 +43,7 @@ struct AppFeature {
                 return PreparationFeature.State(preparationState: preparationState)
             }
             set {
-                guard let newValue else { return }
-                session = .preparing(newValue.preparationState)
+                // Updates are handled through shared state
             }
         }
 
@@ -67,8 +92,12 @@ struct AppFeature {
                 return .none
                 
             case .startButtonTapped:
-                guard case let .preparing(preparationState) = state.session else {
+                guard state.sessionData == nil else {
                     state.error = .sessionAlreadyActive
+                    return .none
+                }
+                
+                guard case let .preparing(preparationState) = state.session else {
                     return .none
                 }
                 
@@ -76,6 +105,10 @@ struct AppFeature {
                     state.error = .invalidInput(reason: "Time must be a positive number")
                     return .none
                 }
+                
+                // Save last used values
+                state.$lastGoal.withLock { $0 = preparationState.goal }
+                state.$lastTimeMinutes.withLock { $0 = preparationState.timeInput }
 
                 state.isLoading = true
                 state.error = nil
@@ -92,7 +125,7 @@ struct AppFeature {
                 .cancellable(id: CancelID.rustOperation)
 
             case .stopButtonTapped:
-                guard case .active = state.session else {
+                guard state.sessionData != nil else {
                     state.error = .noActiveSession
                     return .none
                 }
@@ -111,7 +144,7 @@ struct AppFeature {
                 .cancellable(id: CancelID.rustOperation)
 
             case .analyzeButtonTapped:
-                guard case let .awaitingAnalysis(reflectionPath) = state.session else {
+                guard let reflectionPath = state.reflectionPath else {
                     state.error = .noReflectionToAnalyze
                     return .none
                 }
@@ -134,17 +167,17 @@ struct AppFeature {
 
                 switch response {
                 case let .sessionStarted(sessionData):
-                    state.session = .active(
-                        goal: sessionData.goal,
-                        startTime: Date(timeIntervalSince1970: TimeInterval(sessionData.startTime)),
-                        expectedMinutes: sessionData.timeExpected
-                    )
+                    state.$sessionData.withLock { $0 = sessionData }
+                    state.reflectionPath = nil
+                    state.$analysisHistory.withLock { $0 = [] }
 
                 case let .sessionStopped(reflectionPath):
-                    state.session = .awaitingAnalysis(reflectionPath: reflectionPath)
+                    state.$sessionData.withLock { $0 = nil }
+                    state.reflectionPath = reflectionPath
 
                 case let .analysisComplete(analysis):
-                    state.session = .analyzed(analysis: analysis)
+                    state.reflectionPath = nil
+                    state.$analysisHistory.withLock { $0.append(analysis) }
                 }
 
                 return .none
@@ -163,7 +196,9 @@ struct AppFeature {
                 return .none
 
             case .resetToIdle:
-                state.session = .preparing(PreparationState())
+                state.$sessionData.withLock { $0 = nil }
+                state.reflectionPath = nil
+                state.$analysisHistory.withLock { $0 = [] }
                 state.error = nil
                 state.isLoading = false
                 return .cancel(id: CancelID.rustOperation)

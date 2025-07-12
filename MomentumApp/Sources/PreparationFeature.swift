@@ -5,7 +5,11 @@ import Foundation
 struct PreparationFeature {
     @ObservableState
     struct State: Equatable {
-        var preparationState: PreparationState = PreparationState()
+        var preparationState: PreparationState
+        
+        init(preparationState: PreparationState = PreparationState()) {
+            self.preparationState = preparationState
+        }
     }
     
     enum Action: Equatable, BindableAction {

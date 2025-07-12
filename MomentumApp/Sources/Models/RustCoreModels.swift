@@ -2,7 +2,7 @@ import Foundation
 
 // MARK: - Session Data
 
-struct SessionData: Equatable, Decodable {
+struct SessionData: Equatable, Codable {
     let goal: String
     let startTime: UInt64
     let timeExpected: UInt64
@@ -14,11 +14,19 @@ struct SessionData: Equatable, Decodable {
         case timeExpected = "time_expected"
         case reflectionFilePath = "reflection_file_path"
     }
+    
+    var startDate: Date {
+        Date(timeIntervalSince1970: TimeInterval(startTime))
+    }
+    
+    var expectedMinutes: UInt64 {
+        timeExpected / 60
+    }
 }
 
 // MARK: - Analysis Result
 
-struct AnalysisResult: Equatable, Decodable {
+struct AnalysisResult: Equatable, Codable {
     let summary: String
     let suggestion: String
     let reasoning: String
