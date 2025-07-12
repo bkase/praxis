@@ -1,11 +1,12 @@
-import XCTest
+import Testing
+import Foundation
 import ComposableArchitecture
 @testable import MomentumApp
 
+@Suite("Error Handling Tests")
 @MainActor
-final class ErrorHandlingTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+struct ErrorHandlingTests {
+    init() {
         // Reset shared state before each test
         @Shared(.sessionData) var sessionData: SessionData?
         @Shared(.lastGoal) var lastGoal: String
@@ -18,7 +19,8 @@ final class ErrorHandlingTests: XCTestCase {
         $analysisHistory.withLock { $0 = [] }
     }
     
-    func testErrorHandling() async {
+    @Test("Error Handling")
+    func errorHandling() async {
         // Set up initial values before creating the store
         @Shared(.lastGoal) var lastGoal: String
         @Shared(.lastTimeMinutes) var lastTimeMinutes: String
@@ -72,7 +74,8 @@ final class ErrorHandlingTests: XCTestCase {
         }
     }
     
-    func testStartSessionWhenAlreadyActive() async {
+    @Test("Start Session When Already Active")
+    func startSessionWhenAlreadyActive() async {
         // Start with an active session
         @Shared(.sessionData) var sessionData: SessionData?
         $sessionData.withLock { $0 = SessionData.mock(goal: "Existing Goal") }
@@ -90,7 +93,8 @@ final class ErrorHandlingTests: XCTestCase {
         }
     }
     
-    func testStopSessionWhenNotActive() async {
+    @Test("Stop Session When Not Active")
+    func stopSessionWhenNotActive() async {
         let store = TestStore(
             initialState: AppFeature.State()
         ) {
@@ -104,7 +108,8 @@ final class ErrorHandlingTests: XCTestCase {
         }
     }
     
-    func testAnalyzeWithoutReflection() async {
+    @Test("Analyze Without Reflection")
+    func analyzeWithoutReflection() async {
         let store = TestStore(
             initialState: AppFeature.State()
         ) {
@@ -126,7 +131,8 @@ final class ErrorHandlingTests: XCTestCase {
         await store.skipReceivedActions()
     }
     
-    func testDismissAlert() async {
+    @Test("Dismiss Alert")
+    func dismissAlert() async {
         var state = AppFeature.State()
         state.alert = .genericError(AppError.other("Test Error"))
         
@@ -142,12 +148,14 @@ final class ErrorHandlingTests: XCTestCase {
         }
     }
     
-    func testInvalidTimeInput() async {
+    @Test("Invalid Time Input")
+    func invalidTimeInput() async {
         // This is now handled by the UI not allowing invalid inputs
         // and the preparation state validation
     }
     
-    func testChecklistLoadingError() async {
+    @Test("Checklist Loading Error")
+    func checklistLoadingError() async {
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         } withDependencies: {
@@ -164,7 +172,8 @@ final class ErrorHandlingTests: XCTestCase {
         await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.failure(AppError.other("Failed to load checklist")))))))
     }
     
-    func testCancelCurrentOperation() async {
+    @Test("Cancel Current Operation")
+    func cancelCurrentOperation() async {
         let store = TestStore(
             initialState: AppFeature.State.test(
                 isLoading: true

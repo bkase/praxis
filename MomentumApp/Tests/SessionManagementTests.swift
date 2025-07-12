@@ -1,11 +1,12 @@
-import XCTest
+import Testing
+import Foundation
 import ComposableArchitecture
 @testable import MomentumApp
 
+@Suite("Session Management Tests")
 @MainActor
-final class SessionManagementTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+struct SessionManagementTests {
+    init() {
         // Reset shared state before each test
         @Shared(.sessionData) var sessionData: SessionData?
         @Shared(.lastGoal) var lastGoal: String
@@ -18,7 +19,8 @@ final class SessionManagementTests: XCTestCase {
         $analysisHistory.withLock { $0 = [] }
     }
     
-    func testStartSession() async {
+    @Test("Start Session")
+    func startSession() async {
         // Set up shared state before creating the store
         @Shared(.lastGoal) var lastGoal: String
         @Shared(.lastTimeMinutes) var lastTimeMinutes: String
@@ -90,7 +92,8 @@ final class SessionManagementTests: XCTestCase {
         }
     }
     
-    func testStopSession() async {
+    @Test("Stop Session")
+    func stopSession() async {
         let startTime = Date(timeIntervalSince1970: 1_700_000_000)
         let sessionData = SessionData.mock(
             goal: "Test Goal",
@@ -140,7 +143,8 @@ final class SessionManagementTests: XCTestCase {
         }
     }
     
-    func testAnalyzeReflection() async {
+    @Test("Analyze Reflection")
+    func analyzeReflection() async {
         let store = TestStore(
             initialState: AppFeature.State.test(
                 reflectionPath: "/tmp/test-reflection.md",
@@ -164,7 +168,8 @@ final class SessionManagementTests: XCTestCase {
         }
     }
     
-    func testResetToIdle() async {
+    @Test("Reset to Idle")
+    func resetToIdle() async {
         let sessionData = SessionData.mock()
         
         // Set up shared state before creating the store

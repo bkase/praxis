@@ -1,11 +1,12 @@
-import XCTest
+import Testing
+import Foundation
 import ComposableArchitecture
 @testable import MomentumApp
 
+@Suite("Full Flow Tests")
 @MainActor
-final class FullFlowTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+struct FullFlowTests {
+    init() {
         // Reset shared state before each test
         @Shared(.sessionData) var sessionData: SessionData?
         @Shared(.lastGoal) var lastGoal: String
@@ -18,7 +19,8 @@ final class FullFlowTests: XCTestCase {
         $analysisHistory.withLock { $0 = [] }
     }
     
-    func testFullFlow() async {
+    @Test("Full Flow")
+    func fullFlow() async {
         let fixedTime: UInt64 = 1700000000
         
         // Set up initial shared state with the values we want

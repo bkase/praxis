@@ -1,11 +1,12 @@
-import XCTest
+import Testing
+import Foundation
 import ComposableArchitecture
 @testable import MomentumApp
 
+@Suite("Checklist Tests")
 @MainActor
-final class ChecklistTests: XCTestCase {
-    override func setUp() {
-        super.setUp()
+struct ChecklistTests {
+    init() {
         // Reset shared state before each test
         @Shared(.sessionData) var sessionData: SessionData?
         @Shared(.lastGoal) var lastGoal: String
@@ -18,7 +19,8 @@ final class ChecklistTests: XCTestCase {
         $analysisHistory.withLock { $0 = [] }
     }
     
-    func testChecklistLoading() async {
+    @Test("Checklist Loading")
+    func checklistLoading() async {
         let store = TestStore(initialState: PreparationFeature.State()) {
             PreparationFeature()
         } withDependencies: {
@@ -48,7 +50,8 @@ final class ChecklistTests: XCTestCase {
         }
     }
     
-    func testChecklistInteraction() async {
+    @Test("Checklist Interaction")
+    func checklistInteraction() async {
         let store = TestStore(initialState: PreparationFeature.State(
             goal: "Test Goal",
             timeInput: "30"
@@ -83,47 +86,49 @@ final class ChecklistTests: XCTestCase {
         }
         
         // Verify all items are completed
-        XCTAssertTrue(store.state.checklist.allSatisfy { $0.isCompleted })
-        XCTAssertTrue(store.state.isStartButtonEnabled)
+        #expect(store.state.checklist.allSatisfy { $0.isCompleted })
+        #expect(store.state.isStartButtonEnabled)
     }
     
-    func testStartButtonEnabledLogic() async {
+    @Test("Start Button Enabled Logic")
+    func startButtonEnabledLogic() async {
         // Test with empty state
         var state = PreparationFeature.State()
-        XCTAssertFalse(state.isStartButtonEnabled)
+        #expect(!state.isStartButtonEnabled)
         
         // Add goal
         state.goal = "Test Goal"
-        XCTAssertFalse(state.isStartButtonEnabled)
+        #expect(!state.isStartButtonEnabled)
         
         // Add valid time
         state.timeInput = "30"
-        XCTAssertTrue(state.isStartButtonEnabled) // Empty checklist means all items are completed (vacuous truth)
+        #expect(state.isStartButtonEnabled) // Empty checklist means all items are completed (vacuous truth)
         
         // Add uncompleted checklist items
         state.checklist = [
             ChecklistItem(id: "1", text: "Item 1", isCompleted: false),
             ChecklistItem(id: "2", text: "Item 2", isCompleted: false)
         ]
-        XCTAssertFalse(state.isStartButtonEnabled)
+        #expect(!state.isStartButtonEnabled)
         
         // Complete all checklist items
         state.checklist[id: "1"]?.isCompleted = true
         state.checklist[id: "2"]?.isCompleted = true
-        XCTAssertTrue(state.isStartButtonEnabled)
+        #expect(state.isStartButtonEnabled)
         
         // Test invalid time inputs
         state.timeInput = "0"
-        XCTAssertFalse(state.isStartButtonEnabled)
+        #expect(!state.isStartButtonEnabled)
         
         state.timeInput = "-5"
-        XCTAssertFalse(state.isStartButtonEnabled)
+        #expect(!state.isStartButtonEnabled)
         
         state.timeInput = "abc"
-        XCTAssertFalse(state.isStartButtonEnabled)
+        #expect(!state.isStartButtonEnabled)
     }
     
-    func testGoalAndTimeInputUpdates() async {
+    @Test("Goal and Time Input Updates")
+    func goalAndTimeInputUpdates() async {
         let store = TestStore(initialState: PreparationFeature.State()) {
             PreparationFeature()
         }
