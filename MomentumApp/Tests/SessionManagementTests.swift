@@ -19,15 +19,14 @@ final class SessionManagementTests: XCTestCase {
     }
     
     func testStartSession() async {
+        // Set up shared state before creating the store
+        @Shared(.lastGoal) var lastGoal: String
+        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        $lastGoal.withLock { $0 = "Test Goal" }
+        $lastTimeMinutes.withLock { $0 = "30" }
+        
         let store = TestStore(
-            initialState: AppFeature.State.test(
-                lastGoal: "Test Goal",
-                lastTimeMinutes: "30",
-                destination: .preparation(PreparationFeature.State(
-                    goal: "Test Goal",
-                    timeInput: "30"
-                ))
-            )
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         } withDependencies: {
@@ -41,7 +40,12 @@ final class SessionManagementTests: XCTestCase {
             $0.checklistClient.load = { ChecklistItem.mockItems }
         }
         
-        await store.send(.onAppear)
+        await store.send(.onAppear) {
+            $0.destination = .preparation(PreparationFeature.State(
+                goal: "Test Goal",
+                timeInput: "30"
+            ))
+        }
         
         // Load checklist
         await store.send(.destination(.presented(.preparation(.onAppear))))
@@ -97,15 +101,12 @@ final class SessionManagementTests: XCTestCase {
             timeExpected: 1800
         )
         
+        // Set up shared state before creating the store
+        @Shared(.sessionData) var sharedSessionData: SessionData?
+        $sharedSessionData.withLock { $0 = sessionData }
+        
         let store = TestStore(
-            initialState: AppFeature.State.test(
-                sessionData: sessionData,
-                destination: .activeSession(ActiveSessionFeature.State(
-                    goal: "Test Goal",
-                    startTime: startTime,
-                    expectedMinutes: 30
-                ))
-            )
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         } withDependencies: {
@@ -113,6 +114,9 @@ final class SessionManagementTests: XCTestCase {
                 "/tmp/test-reflection.md"
             }
         }
+        
+        // Verify initial state has active session
+        await store.send(.onAppear)
         
         // Stop session - shows confirmation dialog
         await store.send(.destination(.presented(.activeSession(.stopButtonTapped)))) {
@@ -172,17 +176,21 @@ final class SessionManagementTests: XCTestCase {
     
     func testResetToIdle() async {
         let sessionData = SessionData.mock()
+        
+        // Set up shared state before creating the store
+        @Shared(.sessionData) var sharedSessionData: SessionData?
+        @Shared(.analysisHistory) var analysisHistory: [AnalysisResult]
+        $sharedSessionData.withLock { $0 = sessionData }
+        $analysisHistory.withLock { $0 = [AnalysisResult.mock] }
+        
         let store = TestStore(
-            initialState: AppFeature.State.test(
-                sessionData: sessionData,
-                analysisHistory: [AnalysisResult.mock],
-                reflectionPath: "/tmp/test.md",
-                isLoading: true,
-                destination: .analysis(AnalysisFeature.State(analysis: AnalysisResult.mock))
-            )
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         }
+        
+        // Verify initial state has analysis destination
+        await store.send(.onAppear)
         
         await store.send(.destination(.presented(.analysis(.resetButtonTapped)))) {
             $0.confirmationDialog = .resetToIdle()

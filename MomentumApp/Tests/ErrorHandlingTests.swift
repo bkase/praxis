@@ -45,6 +45,22 @@ final class ErrorHandlingTests: XCTestCase {
         
         // Load checklist
         await store.send(.destination(.presented(.preparation(.onAppear))))
+        await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.success(ChecklistItem.mockItems)))))) {
+            if case .preparation(var preparationState) = $0.destination {
+                preparationState.checklist = IdentifiedArray(uniqueElements: ChecklistItem.mockItems)
+                $0.destination = .preparation(preparationState)
+            }
+        }
+        
+        // Complete all checklist items so start button is enabled
+        for item in ChecklistItem.mockItems {
+            await store.send(.destination(.presented(.preparation(.checklistItemToggled(item.id))))) {
+                if case .preparation(var preparationState) = $0.destination {
+                    preparationState.checklist[id: item.id]?.isCompleted = true
+                    $0.destination = .preparation(preparationState)
+                }
+            }
+        }
         
         // Try to start a session
         await store.send(.destination(.presented(.preparation(.startButtonTapped))))
@@ -142,6 +158,7 @@ final class ErrorHandlingTests: XCTestCase {
         }
         
         await store.send(.destination(.presented(.preparation(.onAppear))))
+        await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.failure(AppError.other("Failed to load checklist")))))))
     }
     
     func testCancelCurrentOperation() async {
