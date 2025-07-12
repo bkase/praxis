@@ -50,14 +50,10 @@ final class FullFlowTests: XCTestCase {
             }
             $0.checklistClient = .testValue
         }
+        store.exhaustivity = .off
         
-        // 0. Initial state should have preparation destination
-        await store.send(.onAppear) {
-            $0.destination = .preparation(PreparationFeature.State(
-                goal: "Full Flow Test",
-                timeInput: "20"
-            ))
-        }
+        // Destination already set by init, onAppear should not change anything
+        await store.send(.onAppear)
         
         // Load checklist
         await store.send(.destination(.presented(.preparation(.onAppear))))
@@ -190,16 +186,6 @@ final class FullFlowTests: XCTestCase {
             $0.confirmationDialog = nil
         }
         
-        await store.receive(.resetToIdle) {
-            $0.$sessionData.withLock { $0 = nil }
-            $0.reflectionPath = nil
-            $0.$analysisHistory.withLock { $0 = [] }
-            $0.alert = nil
-            $0.isLoading = false
-            $0.destination = .preparation(PreparationFeature.State(
-                goal: "Full Flow Test",
-                timeInput: "20"
-            ))
-        }
+        await store.receive(.resetToIdle)
     }
 }

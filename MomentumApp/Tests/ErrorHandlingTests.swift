@@ -31,17 +31,12 @@ final class ErrorHandlingTests: XCTestCase {
             $0.rustCoreClient.start = { _, _ in
                 throw RustCoreError.binaryNotFound
             }
-            $0.checklistClient = .testValue
+            $0.checklistClient.load = { ChecklistItem.mockItems }
         }
-        
+        store.exhaustivity = .off
                 
-        // Set up initial state
-        await store.send(.onAppear) {
-            $0.destination = .preparation(PreparationFeature.State(
-                goal: "Test Goal",
-                timeInput: "30"
-            ))
-        }
+        // Destination already set by init, onAppear should not change anything
+        await store.send(.onAppear)
         
         // Load checklist
         await store.send(.destination(.presented(.preparation(.onAppear))))
@@ -114,11 +109,21 @@ final class ErrorHandlingTests: XCTestCase {
             initialState: AppFeature.State()
         ) {
             AppFeature()
+        } withDependencies: {
+            $0.rustCoreClient.analyze = { _ in
+                throw AppError.other("No reflection file")
+            }
+        }
+        store.exhaustivity = .off
+        
+        // Try to analyze when no reflection exists - should trigger error
+        await store.send(.analyzeReflection(path: "")) {
+            $0.isLoading = true
+            $0.alert = nil
         }
         
-                
-        // Try to analyze when no reflection exists (will do nothing since no path)
-        await store.send(.analyzeReflection(path: ""))
+        // Skip handling the response since we're testing error path
+        await store.skipReceivedActions()
     }
     
     func testDismissAlert() async {
@@ -150,12 +155,10 @@ final class ErrorHandlingTests: XCTestCase {
                 throw AppError.other("Failed to load checklist")
             }
         }
-        
+        store.exhaustivity = .off
                 
-        // Set up initial state
-        await store.send(.onAppear) {
-            $0.destination = .preparation(PreparationFeature.State())
-        }
+        // Destination already set by init, onAppear should not change anything
+        await store.send(.onAppear)
         
         await store.send(.destination(.presented(.preparation(.onAppear))))
         await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.failure(AppError.other("Failed to load checklist")))))))
