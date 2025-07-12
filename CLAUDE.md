@@ -141,12 +141,13 @@ cd momentum && cargo clippy
 ## Important Task Completion Checklist
 
 When completing any task (especially from docs/todos/):
-1. Build the app: `xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp build -skipMacroValidation`
-2. Run ALL tests: `xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp test -skipMacroValidation`
-3. Ensure ALL tests pass with no failures
-4. Only then commit the changes
-5. Delete the corresponding todo file from docs/todos/
-6. Mark the task as completed in the todo list
+1. If starting a new Claude session, first read `@docs/swift-composable-architecture.md` to understand TCA patterns
+2. Build the app: `xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp build -skipMacroValidation`
+3. Run ALL tests: `xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp test -skipMacroValidation`
+4. Ensure ALL tests pass with no failures
+5. Only then commit the changes
+6. Delete the corresponding todo file from docs/todos/
+7. Mark the task as completed in the todo list
 
 NEVER mark a task as done if tests are failing!
 
