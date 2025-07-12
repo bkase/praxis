@@ -5,31 +5,40 @@ import ComposableArchitecture
 @MainActor
 final class ChecklistTests: XCTestCase {
     func testChecklistLoading() async {
-        let store = TestStore(initialState: AppFeature.State.test()) {
-            AppFeature()
+        let store = TestStore(initialState: PreparationFeature.State()) {
+            PreparationFeature()
         } withDependencies: {
-            $0.checklistClient = .testValue
+            $0.checklistClient.load = {
+                [
+                    ChecklistItem(id: "test-1", text: "Test item 1"),
+                    ChecklistItem(id: "test-2", text: "Test item 2"),
+                    ChecklistItem(id: "test-3", text: "Test item 3")
+                ]
+            }
         }
         
         // Load checklist on appear
-        await store.send(.preparation(.onAppear))
+        await store.send(.onAppear)
         
-        await store.receive(.preparation(.checklistItemsLoaded(.success([
+        await store.receive(.checklistItemsLoaded(.success([
             ChecklistItem(id: "test-1", text: "Test item 1"),
             ChecklistItem(id: "test-2", text: "Test item 2"),
             ChecklistItem(id: "test-3", text: "Test item 3")
-        ])))) // Remove the closure since state doesn't change at the root level
+        ]))) {
+            $0.checklist = [
+                ChecklistItem(id: "test-1", text: "Test item 1"),
+                ChecklistItem(id: "test-2", text: "Test item 2"),
+                ChecklistItem(id: "test-3", text: "Test item 3")
+            ]
+        }
     }
     
     func testChecklistInteraction() async {
-        // Set up shared state before creating store
-        @Shared(.lastGoal) var lastGoal: String
-        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
-        $lastGoal.withLock { $0 = "Test Goal" }
-        $lastTimeMinutes.withLock { $0 = "30" }
-        
-        let store = TestStore(initialState: AppFeature.State()) {
-            AppFeature()
+        let store = TestStore(initialState: PreparationFeature.State(
+            goal: "Test Goal",
+            timeInput: "30"
+        )) {
+            PreparationFeature()
         } withDependencies: {
             $0.checklistClient.load = {
                 ChecklistItem.mockItems
@@ -37,29 +46,34 @@ final class ChecklistTests: XCTestCase {
         }
         
         // Load checklist first
-        await store.send(.preparation(.onAppear))
-        await store.receive(.preparation(.checklistItemsLoaded(.success(ChecklistItem.mockItems))))
+        await store.send(.onAppear)
+        await store.receive(.checklistItemsLoaded(.success(ChecklistItem.mockItems))) {
+            $0.checklist = IdentifiedArray(uniqueElements: ChecklistItem.mockItems)
+        }
         
         // Toggle first item
-        await store.send(.preparation(.checklistItemToggled("test-1")))
+        await store.send(.checklistItemToggled("test-1")) {
+            $0.checklist[id: "test-1"]?.isCompleted = true
+        }
         
         // Toggle second item
-        await store.send(.preparation(.checklistItemToggled("test-2")))
+        await store.send(.checklistItemToggled("test-2")) {
+            $0.checklist[id: "test-2"]?.isCompleted = true
+        }
         
         // Toggle third item
-        await store.send(.preparation(.checklistItemToggled("test-3")))
-        
-        // Verify all items are completed in preparation state
-        if let preparationState = store.state.preparation?.preparationState {
-            XCTAssertTrue(preparationState.checklist.allSatisfy { $0.isCompleted })
-        } else {
-            XCTFail("Expected preparation state")
+        await store.send(.checklistItemToggled("test-3")) {
+            $0.checklist[id: "test-3"]?.isCompleted = true
         }
+        
+        // Verify all items are completed
+        XCTAssertTrue(store.state.checklist.allSatisfy { $0.isCompleted })
+        XCTAssertTrue(store.state.isStartButtonEnabled)
     }
     
     func testStartButtonEnabledLogic() async {
         // Test with empty state
-        var state = PreparationState()
+        var state = PreparationFeature.State()
         XCTAssertFalse(state.isStartButtonEnabled)
         
         // Add goal
@@ -91,5 +105,21 @@ final class ChecklistTests: XCTestCase {
         
         state.timeInput = "abc"
         XCTAssertFalse(state.isStartButtonEnabled)
+    }
+    
+    func testGoalAndTimeInputUpdates() async {
+        let store = TestStore(initialState: PreparationFeature.State()) {
+            PreparationFeature()
+        }
+        
+        // Test goal update
+        await store.send(.goalChanged("New Goal")) {
+            $0.goal = "New Goal"
+        }
+        
+        // Test time input update
+        await store.send(.timeInputChanged("45")) {
+            $0.timeInput = "45"
+        }
     }
 }

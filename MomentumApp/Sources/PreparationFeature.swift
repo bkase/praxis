@@ -5,30 +5,55 @@ import Foundation
 struct PreparationFeature {
     @ObservableState
     struct State: Equatable {
-        var preparationState: PreparationState
+        var goal: String = ""
+        var timeInput: String = ""
+        var checklist: IdentifiedArrayOf<ChecklistItem> = []
         
-        init(preparationState: PreparationState = PreparationState()) {
-            self.preparationState = preparationState
+        var isStartButtonEnabled: Bool {
+            !goal.isEmpty &&
+            Int(timeInput).map { $0 > 0 } == true &&
+            checklist.allSatisfy { $0.isCompleted }
+        }
+        
+        init(
+            goal: String = "",
+            timeInput: String = "",
+            checklist: IdentifiedArrayOf<ChecklistItem> = []
+        ) {
+            self.goal = goal
+            self.timeInput = timeInput
+            self.checklist = checklist
+        }
+        
+        init(preparationState: PreparationState) {
+            self.goal = preparationState.goal
+            self.timeInput = preparationState.timeInput
+            self.checklist = preparationState.checklist
+        }
+        
+        var preparationState: PreparationState {
+            PreparationState(
+                goal: goal,
+                timeInput: timeInput,
+                checklist: checklist
+            )
         }
     }
     
-    enum Action: Equatable, BindableAction {
-        case binding(BindingAction<State>)
+    enum Action: Equatable {
         case onAppear
         case checklistItemsLoaded(TaskResult<[ChecklistItem]>)
         case checklistItemToggled(ChecklistItem.ID)
         case goalChanged(String)
         case timeInputChanged(String)
+        case startButtonTapped
     }
     
     @Dependency(\.checklistClient) var checklistClient
     
     var body: some ReducerOf<Self> {
-        BindingReducer()
         Reduce { state, action in
             switch action {
-            case .binding:
-                return .none
                 
             case .onAppear:
                 return .run { send in
@@ -42,7 +67,7 @@ struct PreparationFeature {
                 }
                 
             case let .checklistItemsLoaded(.success(items)):
-                state.preparationState.checklist = IdentifiedArray(uniqueElements: items)
+                state.checklist = IdentifiedArray(uniqueElements: items)
                 return .none
                 
             case .checklistItemsLoaded(.failure):
@@ -50,15 +75,19 @@ struct PreparationFeature {
                 return .none
                 
             case let .checklistItemToggled(id):
-                state.preparationState.checklist[id: id]?.isCompleted.toggle()
+                state.checklist[id: id]?.isCompleted.toggle()
                 return .none
                 
             case let .goalChanged(newGoal):
-                state.preparationState.goal = newGoal
+                state.goal = newGoal
                 return .none
                 
-            case let .timeInputChanged(newTimeInput):
-                state.preparationState.timeInput = newTimeInput
+            case let .timeInputChanged(newTime):
+                state.timeInput = newTime
+                return .none
+                
+            case .startButtonTapped:
+                // This will be handled by parent
                 return .none
             }
         }

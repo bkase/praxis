@@ -2,8 +2,7 @@ import SwiftUI
 import ComposableArchitecture
 
 struct AnalysisResultView: View {
-    @Bindable var store: StoreOf<AppFeature>
-    let analysis: AnalysisResult
+    @Bindable var store: StoreOf<AnalysisFeature>
     
     var body: some View {
         ScrollView {
@@ -19,7 +18,7 @@ struct AnalysisResultView: View {
                     Text("Summary")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    Text(analysis.summary)
+                    Text(store.analysis.summary)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -28,7 +27,7 @@ struct AnalysisResultView: View {
                     Text("Suggestion")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    Text(analysis.suggestion)
+                    Text(store.analysis.suggestion)
                         .font(.caption)
                         .foregroundColor(.secondary)
                     
@@ -37,13 +36,13 @@ struct AnalysisResultView: View {
                     Text("Reasoning")
                         .font(.subheadline)
                         .fontWeight(.semibold)
-                    Text(analysis.reasoning)
+                    Text(store.analysis.reasoning)
                         .font(.caption)
                         .foregroundColor(.secondary)
                 }
                 
                 Button("Start New Session") {
-                    store.send(.resetToIdle)
+                    store.send(.resetButtonTapped)
                 }
                 .buttonStyle(.borderedProminent)
                 .frame(maxWidth: .infinity)

@@ -2,16 +2,13 @@ import SwiftUI
 import ComposableArchitecture
 
 struct ActiveSessionView: View {
-    @Bindable var store: StoreOf<AppFeature>
-    let goal: String
-    let startTime: Date
-    let expectedMinutes: UInt64
+    @Bindable var store: StoreOf<ActiveSessionFeature>
     
     @State private var currentTime = Date()
     private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
     
     private var elapsedTime: TimeInterval {
-        currentTime.timeIntervalSince(startTime)
+        currentTime.timeIntervalSince(store.startTime)
     }
     
     private var elapsedMinutes: Int {
@@ -19,7 +16,7 @@ struct ActiveSessionView: View {
     }
     
     private var progress: Double {
-        min(elapsedTime / (Double(expectedMinutes) * 60), 1.0)
+        min(elapsedTime / (Double(store.expectedMinutes) * 60), 1.0)
     }
     
     private var elapsedFormatted: String {
@@ -35,7 +32,7 @@ struct ActiveSessionView: View {
     }
     
     private var isOvertime: Bool {
-        elapsedMinutes > Int(expectedMinutes)
+        elapsedMinutes > Int(store.expectedMinutes)
     }
     
     var body: some View {
@@ -49,7 +46,7 @@ struct ActiveSessionView: View {
                 Text("Active Session")
                     .font(.headline)
                 
-                Text(goal)
+                Text(store.goal)
                     .font(.subheadline)
                     .foregroundStyle(.secondary)
                     .multilineTextAlignment(.center)
@@ -87,7 +84,7 @@ struct ActiveSessionView: View {
                 Divider()
                     .frame(height: 16)
                 
-                Label("Goal: \(expectedMinutes) min", systemImage: "target")
+                Label("Goal: \(store.expectedMinutes) min", systemImage: "target")
                     .foregroundStyle(.secondary)
             }
             .font(.caption)
@@ -98,7 +95,6 @@ struct ActiveSessionView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(store.isLoading)
             .keyboardShortcut("s", modifiers: .command)
         }
     }

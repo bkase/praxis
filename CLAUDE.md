@@ -102,6 +102,11 @@ The system uses `session.json` as the single source of truth for active sessions
 3. **Decoupled Architecture**: GUI and CLI communicate only through subprocess calls and file system
 4. **Local-First**: All data stored locally as JSON and markdown files
 
+### Code Organization
+- **Maximum file length**: 200 lines per file
+- **Refactoring requirement**: When any code file exceeds 200 lines, it must be refactored into multiple smaller files
+- **Benefits**: Improves readability, maintainability, and makes code reviews easier
+
 ### Testing Strategy
 - **Swift Tests**: Use TCA's `TestStore` with mocked `RustCoreClient` dependency
 - **Rust Tests**: Mock the `Environment` struct containing file system and API dependencies

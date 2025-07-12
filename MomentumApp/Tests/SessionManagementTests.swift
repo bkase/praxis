@@ -26,21 +26,39 @@ final class SessionManagementTests: XCTestCase {
             $0.checklistClient.load = { ChecklistItem.mockItems }
         }
         
-        // Set up preparation state
-        await store.send(.preparation(.onAppear))
-        await store.receive(.preparation(.checklistItemsLoaded(.success(ChecklistItem.mockItems))))
+        // Set up initial state with preparation
+        await store.send(.onAppear) {
+            $0.destination = .preparation(PreparationFeature.State(
+                goal: "Test Goal",
+                timeInput: "30"
+            ))
+        }
+        
+        // Load checklist
+        await store.send(.destination(.presented(.preparation(.onAppear))))
+        await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.success(ChecklistItem.mockItems)))))) {
+            if case .preparation(var preparationState) = $0.destination {
+                preparationState.checklist = IdentifiedArray(uniqueElements: ChecklistItem.mockItems)
+                $0.destination = .preparation(preparationState)
+            }
+        }
         
         // Complete checklist
         for item in ChecklistItem.mockItems {
-            await store.send(.preparation(.checklistItemToggled(item.id)))
+            await store.send(.destination(.presented(.preparation(.checklistItemToggled(item.id))))) {
+                if case .preparation(var preparationState) = $0.destination {
+                    preparationState.checklist[id: item.id]?.isCompleted = true
+                    $0.destination = .preparation(preparationState)
+                }
+            }
         }
         
         // Start session
-        await store.send(.startButtonTapped) {
+        await store.send(.destination(.presented(.preparation(.startButtonTapped))))
+        
+        await store.receive(.startSession(goal: "Test Goal", minutes: 30)) {
             $0.isLoading = true
-            $0.error = nil
-            $0.$lastGoal.withLock { $0 = "Test Goal" }
-            $0.$lastTimeMinutes.withLock { $0 = "30" }
+            $0.alert = nil
         }
         
         // Receive success response
@@ -59,6 +77,11 @@ final class SessionManagementTests: XCTestCase {
             }
             $0.reflectionPath = nil
             $0.$analysisHistory.withLock { $0 = [] }
+            $0.destination = .activeSession(ActiveSessionFeature.State(
+                goal: "Test Goal",
+                startTime: Date(timeIntervalSince1970: 1_700_000_000),
+                expectedMinutes: 30
+            ))
         }
     }
     
@@ -75,7 +98,14 @@ final class SessionManagementTests: XCTestCase {
         $sharedSessionData.withLock { $0 = sessionData }
         
         let store = TestStore(
-            initialState: AppFeature.State()
+            initialState: AppFeature.State.test(
+                sessionData: sessionData,
+                destination: .activeSession(ActiveSessionFeature.State(
+                    goal: "Test Goal",
+                    startTime: startTime,
+                    expectedMinutes: 30
+                ))
+            )
         ) {
             AppFeature()
         } withDependencies: {
@@ -84,10 +114,19 @@ final class SessionManagementTests: XCTestCase {
             }
         }
         
-        // Stop session
-        await store.send(.stopButtonTapped) {
+        // Stop session - shows confirmation dialog
+        await store.send(.destination(.presented(.activeSession(.stopButtonTapped)))) {
+            $0.confirmationDialog = .stopSession()
+        }
+        
+        // Confirm stop
+        await store.send(.confirmationDialog(.presented(.confirmStopSession))) {
+            $0.confirmationDialog = nil
+        }
+        
+        await store.receive(.stopSession) {
             $0.isLoading = true
-            $0.error = nil
+            $0.alert = nil
         }
         
         // Receive response
@@ -95,13 +134,15 @@ final class SessionManagementTests: XCTestCase {
             $0.isLoading = false
             $0.$sessionData.withLock { $0 = nil }
             $0.reflectionPath = "/tmp/test-reflection.md"
+            $0.destination = .reflection(ReflectionFeature.State(reflectionPath: "/tmp/test-reflection.md"))
         }
     }
     
     func testAnalyzeReflection() async {
         let store = TestStore(
             initialState: AppFeature.State.test(
-                reflectionPath: "/tmp/test-reflection.md"
+                reflectionPath: "/tmp/test-reflection.md",
+                destination: .reflection(ReflectionFeature.State(reflectionPath: "/tmp/test-reflection.md"))
             )
         ) {
             AppFeature()
@@ -112,9 +153,11 @@ final class SessionManagementTests: XCTestCase {
         }
         
         // Analyze reflection
-        await store.send(.analyzeButtonTapped) {
+        await store.send(.destination(.presented(.reflection(.analyzeButtonTapped))))
+        
+        await store.receive(.analyzeReflection(path: "/tmp/test-reflection.md")) {
             $0.isLoading = true
-            $0.error = nil
+            $0.alert = nil
         }
         
         // Receive analysis result
@@ -122,6 +165,7 @@ final class SessionManagementTests: XCTestCase {
             $0.isLoading = false
             $0.reflectionPath = nil
             $0.$analysisHistory.withLock { $0.append(AnalysisResult.mock) }
+            $0.destination = .analysis(AnalysisFeature.State(analysis: AnalysisResult.mock))
         }
     }
     
@@ -133,18 +177,31 @@ final class SessionManagementTests: XCTestCase {
                 analysisHistory: [AnalysisResult.mock],
                 reflectionPath: "/tmp/test.md",
                 isLoading: true,
-                error: .unexpected("Some error")
+                destination: .analysis(AnalysisFeature.State(analysis: AnalysisResult.mock))
             )
         ) {
             AppFeature()
         }
         
-        await store.send(.resetToIdle) {
+        await store.send(.destination(.presented(.analysis(.resetButtonTapped)))) {
+            $0.confirmationDialog = .resetToIdle()
+        }
+        
+        // Confirm reset
+        await store.send(.confirmationDialog(.presented(.confirmReset))) {
+            $0.confirmationDialog = nil
+        }
+        
+        await store.receive(.resetToIdle) {
             $0.$sessionData.withLock { $0 = nil }
             $0.reflectionPath = nil
             $0.$analysisHistory.withLock { $0 = [] }
-            $0.error = nil
+            $0.alert = nil
             $0.isLoading = false
+            $0.destination = .preparation(PreparationFeature.State(
+                goal: "",
+                timeInput: "30"
+            ))
         }
     }
 }

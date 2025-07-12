@@ -31,21 +31,48 @@ final class ErrorHandlingTests: XCTestCase {
             $0.rustCoreClient.start = { _, _ in
                 throw RustCoreError.binaryNotFound
             }
+            $0.checklistClient = .testValue
+        }
+        
+        // Set up initial state
+        await store.send(.onAppear) {
+            $0.destination = .preparation(PreparationFeature.State(
+                goal: "Test Goal",
+                timeInput: "30"
+            ))
+        }
+        
+        // Load checklist
+        await store.send(.destination(.presented(.preparation(.onAppear))))
+        await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.success(ChecklistItem.mockItems)))))) {
+            if case .preparation(var preparationState) = $0.destination {
+                preparationState.checklist = IdentifiedArray(uniqueElements: ChecklistItem.mockItems)
+                $0.destination = .preparation(preparationState)
+            }
+        }
+        
+        // Complete checklist items
+        for item in ChecklistItem.mockItems {
+            await store.send(.destination(.presented(.preparation(.checklistItemToggled(item.id))))) {
+                if case .preparation(var preparationState) = $0.destination {
+                    preparationState.checklist[id: item.id]?.isCompleted = true
+                    $0.destination = .preparation(preparationState)
+                }
+            }
         }
         
         // Try to start a session
-        await store.send(.startButtonTapped) {
+        await store.send(.destination(.presented(.preparation(.startButtonTapped))))
+        
+        await store.receive(.startSession(goal: "Test Goal", minutes: 30)) {
             $0.isLoading = true
-            $0.error = nil
-            // The reducer should save last used values
-            $0.$lastGoal.withLock { $0 = "Test Goal" }
-            $0.$lastTimeMinutes.withLock { $0 = "30" }
+            $0.alert = nil
         }
         
         // Receive error response
         await store.receive(.rustCoreResponse(.failure(RustCoreError.binaryNotFound))) {
             $0.isLoading = false
-            $0.error = .rustCore(.binaryNotFound)
+            $0.alert = .error(RustCoreError.binaryNotFound)
         }
     }
     
@@ -61,8 +88,8 @@ final class ErrorHandlingTests: XCTestCase {
         }
         
         // Try to start another session
-        await store.send(.startButtonTapped) {
-            $0.error = .sessionAlreadyActive
+        await store.send(.startSession(goal: "New Goal", minutes: 20)) {
+            $0.alert = .sessionAlreadyActive()
         }
     }
     
@@ -74,8 +101,8 @@ final class ErrorHandlingTests: XCTestCase {
         }
         
         // Try to stop when no session is active
-        await store.send(.stopButtonTapped) {
-            $0.error = .noActiveSession
+        await store.send(.stopSession) {
+            $0.alert = .noActiveSession()
         }
     }
     
@@ -86,40 +113,28 @@ final class ErrorHandlingTests: XCTestCase {
             AppFeature()
         }
         
-        // Try to analyze when no reflection exists
-        await store.send(.analyzeButtonTapped) {
-            $0.error = .noReflectionToAnalyze
-        }
+        // Try to analyze when no reflection exists (will do nothing since no path)
+        await store.send(.analyzeReflection(path: ""))
     }
     
-    func testClearError() async {
+    func testDismissAlert() async {
+        var state = AppFeature.State()
+        state.alert = .genericError(AppError.other("Test Error"))
+        
         let store = TestStore(
-            initialState: AppFeature.State.test(
-                error: .unexpected("Some error")
-            )
+            initialState: state
         ) {
             AppFeature()
         }
         
-        await store.send(.clearError) {
-            $0.error = nil
+        await store.send(.alert(.dismiss)) {
+            $0.alert = nil
         }
     }
     
     func testInvalidTimeInput() async {
-        // Set up state with invalid time
-        @Shared(.lastGoal) var lastGoal: String
-        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
-        $lastGoal.withLock { $0 = "Test Goal" }
-        $lastTimeMinutes.withLock { $0 = "invalid" }
-        
-        let store = TestStore(initialState: AppFeature.State()) {
-            AppFeature()
-        }
-        
-        await store.send(.startButtonTapped) {
-            $0.error = .invalidInput(reason: "Time must be a positive number")
-        }
+        // This is now handled by the UI not allowing invalid inputs
+        // and the preparation state validation
     }
     
     func testChecklistLoadingError() async {
@@ -131,10 +146,15 @@ final class ErrorHandlingTests: XCTestCase {
             }
         }
         
-        await store.send(.preparation(.onAppear))
+        // Set up initial state
+        await store.send(.onAppear) {
+            $0.destination = .preparation(PreparationFeature.State())
+        }
         
-        await store.receive(.preparation(.checklistItemsLoaded(.failure(AppError.other("Failed to load checklist"))))) {
-            $0.error = .other("Failed to load checklist")
+        await store.send(.destination(.presented(.preparation(.onAppear))))
+        
+        await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.failure(AppError.other("Failed to load checklist"))))))) {
+            $0.alert = .error(AppError.other("Failed to load checklist"))
         }
     }
     

@@ -2,18 +2,11 @@ import SwiftUI
 import ComposableArchitecture
 
 struct PreparationView: View {
-    @Bindable var store: StoreOf<AppFeature>
+    @Bindable var store: StoreOf<PreparationFeature>
     @FocusState private var isGoalFieldFocused: Bool
     
-    private var preparationState: PreparationState {
-        guard case let .preparing(state) = store.session else {
-            return PreparationState()
-        }
-        return state
-    }
-    
     private var isTimeInputValid: Bool {
-        Int(preparationState.timeInput).map { $0 > 0 } == true
+        Int(store.timeInput).map { $0 > 0 } == true
     }
     
     var body: some View {
@@ -29,13 +22,13 @@ struct PreparationView: View {
                         .labelStyle(.titleOnly)
                     
                     TextField("e.g., Complete project proposal", text: Binding(
-                        get: { preparationState.goal },
-                        set: { store.send(.preparation(.goalChanged($0))) }
+                        get: { store.goal },
+                        set: { store.send(.goalChanged($0)) }
                     ))
                     .textFieldStyle(.roundedBorder)
                     .focused($isGoalFieldFocused)
                     .onSubmit {
-                        if preparationState.isStartButtonEnabled {
+                        if store.isStartButtonEnabled {
                             startSession()
                         }
                     }
@@ -48,22 +41,22 @@ struct PreparationView: View {
                         .labelStyle(.titleOnly)
                     
                     TextField("30", text: Binding(
-                        get: { preparationState.timeInput },
-                        set: { store.send(.preparation(.timeInputChanged($0))) }
+                        get: { store.timeInput },
+                        set: { store.send(.timeInputChanged($0)) }
                     ))
                     .textFieldStyle(.roundedBorder)
                     .overlay(
                         RoundedRectangle(cornerRadius: 6)
-                            .stroke(!preparationState.timeInput.isEmpty && !isTimeInputValid ? Color.red : Color.clear, lineWidth: 1)
+                            .stroke(!store.timeInput.isEmpty && !isTimeInputValid ? Color.red : Color.clear, lineWidth: 1)
                     )
                     .onSubmit {
-                        if preparationState.isStartButtonEnabled {
+                        if store.isStartButtonEnabled {
                             startSession()
                         }
                     }
                 }
                 
-                if !preparationState.checklist.isEmpty {
+                if !store.checklist.isEmpty {
                     VStack(alignment: .leading, spacing: 8) {
                         Label("Pre-session checklist", systemImage: "checklist")
                             .font(.subheadline)
@@ -71,17 +64,16 @@ struct PreparationView: View {
                             .labelStyle(.titleOnly)
                         
                         VStack(alignment: .leading, spacing: 6) {
-                            ForEach(preparationState.checklist) { item in
+                            ForEach(store.checklist) { item in
                                 HStack {
-                                    Toggle(isOn: Binding(
-                                        get: { item.isCompleted },
-                                        set: { _ in
-                                            store.send(.preparation(.checklistItemToggled(item.id)))
-                                        }
-                                    )) {
-                                        Text(item.text)
-                                            .font(.callout)
-                                    }
+                                    Toggle(
+                                        item.text,
+                                        isOn: .init(
+                                            get: { item.isCompleted },
+                                            set: { _ in store.send(.checklistItemToggled(item.id)) }
+                                        )
+                                    )
+                                    .font(.callout)
                                     .toggleStyle(.checkbox)
                                 }
                                 .padding(.vertical, 2)
@@ -100,13 +92,13 @@ struct PreparationView: View {
             }
             .buttonStyle(.borderedProminent)
             .controlSize(.large)
-            .disabled(!preparationState.isStartButtonEnabled || store.isLoading)
+            .disabled(!store.isStartButtonEnabled)
             .frame(maxWidth: .infinity)
             .keyboardShortcut(.return, modifiers: .command)
         }
         .onAppear {
             isGoalFieldFocused = true
-            store.send(.preparation(.onAppear))
+            store.send(.onAppear)
         }
     }
     

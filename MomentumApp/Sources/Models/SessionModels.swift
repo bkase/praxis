@@ -2,15 +2,6 @@ import Foundation
 import ComposableArchitecture
 import IdentifiedCollections
 
-// MARK: - Session State
-
-enum SessionState: Equatable {
-    case preparing(PreparationState)
-    case active(goal: String, startTime: Date, expectedMinutes: UInt64)
-    case awaitingAnalysis(reflectionPath: String)
-    case analyzed(analysis: AnalysisResult)
-}
-
 // MARK: - Preparation State
 
 struct PreparationState: Equatable {

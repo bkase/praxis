@@ -2,8 +2,7 @@ import SwiftUI
 import ComposableArchitecture
 
 struct AwaitingAnalysisView: View {
-    @Bindable var store: StoreOf<AppFeature>
-    let reflectionPath: String
+    @Bindable var store: StoreOf<ReflectionFeature>
     
     var body: some View {
         VStack(spacing: 20) {
@@ -21,7 +20,7 @@ struct AwaitingAnalysisView: View {
             
             VStack(spacing: 12) {
                 Button("Open Reflection") {
-                    NSWorkspace.shared.open(URL(fileURLWithPath: reflectionPath))
+                    NSWorkspace.shared.open(URL(fileURLWithPath: store.reflectionPath))
                 }
                 .buttonStyle(.bordered)
                 .keyboardShortcut("o", modifiers: .command)
@@ -30,12 +29,11 @@ struct AwaitingAnalysisView: View {
                     store.send(.analyzeButtonTapped)
                 }
                 .buttonStyle(.borderedProminent)
-                .disabled(store.isLoading)
                 .keyboardShortcut(.return, modifiers: .command)
             }
             
             Button("Start New Session") {
-                store.send(.resetToIdle)
+                store.send(.cancelButtonTapped)
             }
             .font(.caption)
             .foregroundStyle(.secondary)

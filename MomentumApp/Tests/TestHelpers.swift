@@ -14,7 +14,7 @@ extension AppFeature.State {
         analysisHistory: [AnalysisResult] = [],
         reflectionPath: String? = nil,
         isLoading: Bool = false,
-        error: AppError? = nil
+        destination: AppFeature.Destination.State? = nil
     ) -> Self {
         var state = AppFeature.State()
         
@@ -27,7 +27,7 @@ extension AppFeature.State {
         // Set regular values
         state.reflectionPath = reflectionPath
         state.isLoading = isLoading
-        state.error = error
+        state.destination = destination
         
         return state
     }
