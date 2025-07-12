@@ -1,11 +1,18 @@
 import Foundation
 
+// MARK: - Process Result
+
+struct ProcessResult: Equatable {
+    let output: String?
+    let error: String?
+    let exitCode: Int32
+}
+
 // MARK: - Process Execution Helpers
 
-@MainActor
-func executeCommand(_ command: String, arguments: [String]) async throws -> (output: String?, error: String?) {
+func executeCommand(_ command: String, arguments: [String]) async throws -> ProcessResult {
     try await withCheckedThrowingContinuation { continuation in
-        Task {
+        Task.detached {
             let task = Process()
             
             // Get the path to the momentum binary in the app bundle
@@ -56,7 +63,11 @@ func executeCommand(_ command: String, arguments: [String]) async throws -> (out
                     let stderr = error?.trimmingCharacters(in: .whitespacesAndNewlines) ?? "Unknown error"
                     continuation.resume(throwing: RustCoreError.commandFailed(command: command, stderr: stderr))
                 } else {
-                    continuation.resume(returning: (output, error))
+                    continuation.resume(returning: ProcessResult(
+                        output: output,
+                        error: error,
+                        exitCode: process.terminationStatus
+                    ))
                 }
             }
             
