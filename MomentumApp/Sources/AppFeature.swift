@@ -1,7 +1,6 @@
 import ComposableArchitecture
 import Foundation
 import Observation
-import IdentifiedCollections
 
 @Reducer
 struct AppFeature {
@@ -10,6 +9,18 @@ struct AppFeature {
         var session: SessionState = .preparing(PreparationState())
         var isLoading = false
         var error: AppError?
+        
+        // For child reducer scope
+        var preparation: PreparationFeature.State? {
+            get {
+                guard case let .preparing(preparationState) = session else { return nil }
+                return PreparationFeature.State(preparationState: preparationState)
+            }
+            set {
+                guard let newValue else { return }
+                session = .preparing(newValue.preparationState)
+            }
+        }
 
         var errorMessage: String? {
             error?.errorDescription
@@ -18,13 +29,10 @@ struct AppFeature {
         var errorRecovery: String? {
             error?.recoverySuggestion
         }
-
     }
 
-    enum Action: Equatable, BindableAction {
-        case binding(BindingAction<State>)
-        case onAppear
-        case checklistItemsLoaded(TaskResult<[ChecklistItem]>)
+    enum Action: Equatable {
+        case preparation(PreparationFeature.Action)
         case startButtonTapped
         case stopButtonTapped
         case analyzeButtonTapped
@@ -32,11 +40,6 @@ struct AppFeature {
         case clearError
         case resetToIdle
         case cancelCurrentOperation
-        case preparation(PreparationAction)
-    }
-    
-    enum PreparationAction: Equatable {
-        case checklistItemToggled(ChecklistItem.ID)
     }
 
     enum RustCoreResponse: Equatable {
@@ -46,51 +49,23 @@ struct AppFeature {
     }
 
     @Dependency(\.rustCoreClient) var rustCoreClient
-    @Dependency(\.checklistClient) var checklistClient
 
     enum CancelID { case rustOperation }
 
     var body: some ReducerOf<Self> {
-        BindingReducer()
         Reduce { state, action in
             switch action {
-            case .binding:
-                return .none
-                
-            case .onAppear:
-                return .run { send in
-                    await send(
-                        .checklistItemsLoaded(
-                            await TaskResult {
-                                try await checklistClient.load()
-                            }
-                        )
-                    )
-                }
-                
-            case let .checklistItemsLoaded(.success(items)):
-                guard case .preparing(var preparationState) = state.session else {
-                    return .none
-                }
-                preparationState.checklist = IdentifiedArray(uniqueElements: items)
-                state.session = .preparing(preparationState)
-                return .none
-                
-            case let .checklistItemsLoaded(.failure(error)):
-                if let appError = error as? AppError {
-                    state.error = appError
-                } else {
-                    state.error = .unexpected(error.localizedDescription)
+            case let .preparation(preparationAction):
+                // Handle checklist loading errors
+                if case let .checklistItemsLoaded(.failure(error)) = preparationAction {
+                    if let appError = error as? AppError {
+                        state.error = appError
+                    } else {
+                        state.error = .unexpected(error.localizedDescription)
+                    }
                 }
                 return .none
                 
-            case let .preparation(.checklistItemToggled(id)):
-                guard case .preparing(var preparationState) = state.session else {
-                    return .none
-                }
-                preparationState.checklist[id: id]?.isCompleted.toggle()
-                state.session = .preparing(preparationState)
-                return .none
             case .startButtonTapped:
                 guard case let .preparing(preparationState) = state.session else {
                     state.error = .sessionAlreadyActive
@@ -198,29 +173,8 @@ struct AppFeature {
                 return .cancel(id: CancelID.rustOperation)
             }
         }
+        .ifLet(\.preparation, action: \.preparation) {
+            PreparationFeature()
+        }
     }
 }
-
-// MARK: - Supporting Types
-
-enum SessionState: Equatable {
-    case preparing(PreparationState)
-    case active(goal: String, startTime: Date, expectedMinutes: UInt64)
-    case awaitingAnalysis(reflectionPath: String)
-    case analyzed(analysis: AnalysisResult)
-}
-
-struct PreparationState: Equatable {
-    var goal: String = ""
-    var timeInput: String = ""
-    var checklist: IdentifiedArrayOf<ChecklistItem> = []
-    
-    var isStartButtonEnabled: Bool {
-        !goal.isEmpty &&
-        Int(timeInput).map { $0 > 0 } == true &&
-        checklist.allSatisfy { $0.isCompleted }
-    }
-}
-
-// AnalysisResult is now defined in RustCoreClient.swift
-
