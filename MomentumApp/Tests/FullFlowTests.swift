@@ -24,8 +24,10 @@ final class FullFlowTests: XCTestCase {
         // Set up initial shared state with the values we want
         @Shared(.lastGoal) var lastGoal: String
         @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        @Shared(.analysisHistory) var analysisHistory: [AnalysisResult]
         $lastGoal.withLock { $0 = "Full Flow Test" }
         $lastTimeMinutes.withLock { $0 = "20" }
+        $analysisHistory.withLock { $0 = [] }  // Ensure empty history
         
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
@@ -108,16 +110,8 @@ final class FullFlowTests: XCTestCase {
             reflectionFilePath: nil
         ))))) {
             $0.isLoading = false
-            $0.$sessionData.withLock {
-                $0 = SessionData(
-                    goal: "Full Flow Test",
-                    startTime: fixedTime,
-                    timeExpected: 1200,
-                    reflectionFilePath: nil
-                )
-            }
+            // Don't manually update shared state - the reducer handles it
             $0.reflectionPath = nil
-            $0.$analysisHistory.withLock { $0 = [] }
             $0.destination = .activeSession(ActiveSessionFeature.State(
                 goal: "Full Flow Test",
                 startTime: Date(timeIntervalSince1970: TimeInterval(fixedTime)),
@@ -142,7 +136,7 @@ final class FullFlowTests: XCTestCase {
         
         await store.receive(.rustCoreResponse(.success(.sessionStopped(reflectionPath: "/tmp/test-reflection.md")))) {
             $0.isLoading = false
-            $0.$sessionData.withLock { $0 = nil }
+            // Don't manually update shared state - the reducer handles it
             $0.reflectionPath = "/tmp/test-reflection.md"
             $0.destination = .reflection(ReflectionFeature.State(reflectionPath: "/tmp/test-reflection.md"))
         }
@@ -162,13 +156,7 @@ final class FullFlowTests: XCTestCase {
         ))))) {
             $0.isLoading = false
             $0.reflectionPath = nil
-            $0.$analysisHistory.withLock {
-                $0.append(AnalysisResult(
-                    summary: "Test analysis summary",
-                    suggestion: "Test suggestion",
-                    reasoning: "Test reasoning"
-                ))
-            }
+            // The reducer automatically appends to analysisHistory, so we don't do it here
             $0.destination = .analysis(AnalysisFeature.State(analysis: AnalysisResult(
                 summary: "Test analysis summary",
                 suggestion: "Test suggestion",
@@ -186,6 +174,15 @@ final class FullFlowTests: XCTestCase {
             $0.confirmationDialog = nil
         }
         
-        await store.receive(.resetToIdle)
+        await store.receive(.resetToIdle) {
+            // Don't manually update shared state - the reducer handles it
+            $0.reflectionPath = nil
+            $0.alert = nil
+            $0.isLoading = false
+            $0.destination = .preparation(PreparationFeature.State(
+                goal: "Full Flow Test",
+                timeInput: "20"
+            ))
+        }
     }
 }

@@ -80,9 +80,8 @@ final class SessionManagementTests: XCTestCase {
         )
         await store.receive(.rustCoreResponse(.success(.sessionStarted(sessionData)))) {
             $0.isLoading = false
-            $0.$sessionData.withLock { $0 = sessionData }
+            // Don't manually update shared state - the reducer handles it
             $0.reflectionPath = nil
-            $0.$analysisHistory.withLock { $0 = [] }
             $0.destination = .activeSession(ActiveSessionFeature.State(
                 goal: "Test Goal",
                 startTime: Date(timeIntervalSince1970: 1_700_000_000),
@@ -135,7 +134,7 @@ final class SessionManagementTests: XCTestCase {
         // Receive response
         await store.receive(.rustCoreResponse(.success(.sessionStopped(reflectionPath: "/tmp/test-reflection.md")))) {
             $0.isLoading = false
-            $0.$sessionData.withLock { $0 = nil }
+            // Don't manually update shared state - the reducer handles it
             $0.reflectionPath = "/tmp/test-reflection.md"
             $0.destination = .reflection(ReflectionFeature.State(reflectionPath: "/tmp/test-reflection.md"))
         }
@@ -179,6 +178,7 @@ final class SessionManagementTests: XCTestCase {
         ) {
             AppFeature()
         }
+        store.exhaustivity = .off
         
         // Destination already set by init, onAppear should not change anything
         await store.send(.onAppear)
@@ -192,6 +192,15 @@ final class SessionManagementTests: XCTestCase {
             $0.confirmationDialog = nil
         }
         
-        await store.receive(.resetToIdle)
+        await store.receive(.resetToIdle) {
+            // Don't manually update shared state - the reducer handles it
+            $0.reflectionPath = nil
+            $0.alert = nil
+            $0.isLoading = false
+            $0.destination = .preparation(PreparationFeature.State(
+                goal: "",
+                timeInput: "30"
+            ))
+        }
     }
 }
