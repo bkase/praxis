@@ -23,10 +23,14 @@ struct HiddenWindowView: View {
     var body: some View {
         EmptyView()
             .frame(width: 0, height: 0)
-            .background(Color.clear)
             .onAppear {
-                if let window = NSApplication.shared.windows.first {
-                    window.close()
+                // Use async to avoid constraint update loops
+                DispatchQueue.main.async {
+                    if let window = NSApp.windows.first(where: { $0.title == "HiddenWindow" }) {
+                        window.isExcludedFromWindowsMenu = true
+                        window.collectionBehavior = [.auxiliary, .ignoresCycle, .fullScreenAuxiliary]
+                        window.orderOut(nil)
+                    }
                 }
             }
     }

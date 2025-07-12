@@ -21,6 +21,7 @@ final class StatusBarController: NSObject {
             button.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "Momentum")
             button.action = #selector(togglePopover)
             button.target = self
+            button.sendAction(on: [.leftMouseUp, .rightMouseUp])
             
             // Accessibility
             button.setAccessibilityTitle("Momentum")
@@ -29,12 +30,20 @@ final class StatusBarController: NSObject {
         }
     }
     
-    @objc private func togglePopover() {
-        if let popover = popover, popover.isShown {
-            popover.performClose(nil)
-            self.popover = nil
-        } else {
+    @objc private func togglePopover(_ sender: Any?) {
+        guard let event = NSApp.currentEvent else {
             showPopover()
+            return
+        }
+        
+        // Only handle left mouse clicks for now
+        if event.type == .leftMouseUp {
+            if let popover = popover, popover.isShown {
+                popover.performClose(nil)
+                self.popover = nil
+            } else {
+                showPopover()
+            }
         }
     }
     
@@ -42,9 +51,11 @@ final class StatusBarController: NSObject {
         let popover = NSPopover()
         popover.contentSize = NSSize(width: 320, height: 400)
         popover.behavior = .transient
-        popover.contentViewController = NSHostingController(
-            rootView: ContentView(store: store)
-        )
+        popover.animates = false
+        
+        // Create the content view with the store
+        let contentView = ContentView(store: store)
+        popover.contentViewController = NSHostingController(rootView: contentView)
         
         if let button = statusItem?.button {
             popover.show(relativeTo: button.bounds, of: button, preferredEdge: .minY)
