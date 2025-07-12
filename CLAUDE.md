@@ -138,6 +138,18 @@ cd momentum && cargo clippy
 ./test-app.sh  # Runs all tests and validates the build
 ```
 
+## Important Task Completion Checklist
+
+When completing any task (especially from docs/todos/):
+1. Build the app: `xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp build -skipMacroValidation`
+2. Run ALL tests: `xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp test -skipMacroValidation`
+3. Ensure ALL tests pass with no failures
+4. Only then commit the changes
+5. Delete the corresponding todo file from docs/todos/
+6. Mark the task as completed in the todo list
+
+NEVER mark a task as done if tests are failing!
+
 ## Setting Environment Variables in Xcode
 
 To set `ANTHROPIC_API_KEY` for the app:

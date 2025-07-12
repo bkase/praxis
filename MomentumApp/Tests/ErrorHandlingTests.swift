@@ -4,16 +4,17 @@ import ComposableArchitecture
 
 @MainActor
 final class ErrorHandlingTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        // Reset shared state before each test
+        @Shared(.sessionData) var sessionData: SessionData? = nil
+        @Shared(.lastGoal) var lastGoal = ""
+        @Shared(.lastTimeMinutes) var lastTimeMinutes = "30"
+        @Shared(.analysisHistory) var analysisHistory: [AnalysisResult] = []
+    }
+    
     func testErrorHandling() async {
-        let initialState = AppFeature.State(
-            session: .preparing(PreparationState(
-                goal: "Test Goal",
-                timeInput: "30",
-                checklist: []
-            ))
-        )
-        
-        let store = TestStore(initialState: initialState) {
+        let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         } withDependencies: {
             $0.rustCoreClient.start = { _, _ in
@@ -21,10 +22,17 @@ final class ErrorHandlingTests: XCTestCase {
             }
         }
         
+        // Set up initial values
+        @Shared(.lastGoal) var lastGoal = "Test Goal"
+        @Shared(.lastTimeMinutes) var lastTimeMinutes = "30"
+        
         // Try to start a session
         await store.send(.startButtonTapped) {
             $0.isLoading = true
             $0.error = nil
+            // Save last used values
+            $0.$lastGoal.withLock { $0 = "Test Goal" }
+            $0.$lastTimeMinutes.withLock { $0 = "30" }
         }
         
         // Receive error response
@@ -36,10 +44,10 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testStartSessionWhenAlreadyActive() async {
         // Start with an active session
+        @Shared(.sessionData) var sessionData: SessionData? = SessionData.mock(goal: "Existing Goal")
+        
         let store = TestStore(
-            initialState: AppFeature.State(
-                session: .active(goal: "Existing Goal", startTime: Date(), expectedMinutes: 30)
-            )
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         }
@@ -52,9 +60,7 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testStopSessionWhenNotActive() async {
         let store = TestStore(
-            initialState: AppFeature.State(
-                session: .preparing(PreparationState())
-            )
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         }
@@ -67,9 +73,7 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testAnalyzeWithoutReflection() async {
         let store = TestStore(
-            initialState: AppFeature.State(
-                session: .preparing(PreparationState())
-            )
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         }
@@ -82,10 +86,13 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testClearError() async {
         let store = TestStore(
-            initialState: AppFeature.State(error: .unexpected("Some error"))
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         }
+        
+        // Manually set an error
+        store.state.error = .unexpected("Some error")
         
         await store.send(.clearError) {
             $0.error = nil
@@ -93,15 +100,11 @@ final class ErrorHandlingTests: XCTestCase {
     }
     
     func testInvalidTimeInput() async {
-        let initialState = AppFeature.State(
-            session: .preparing(PreparationState(
-                goal: "Test Goal",
-                timeInput: "invalid",
-                checklist: []
-            ))
-        )
+        // Set up state with invalid time
+        @Shared(.lastGoal) var lastGoal = "Test Goal"
+        @Shared(.lastTimeMinutes) var lastTimeMinutes = "invalid"
         
-        let store = TestStore(initialState: initialState) {
+        let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         }
         
@@ -128,25 +131,15 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testCancelCurrentOperation() async {
         let store = TestStore(
-            initialState: AppFeature.State(isLoading: true)
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         }
         
+        store.state.isLoading = true
+        
         await store.send(.cancelCurrentOperation) {
             $0.isLoading = false
-        }
-    }
-}
-
-// Helper extension to access active session start time for testing
-private extension SessionState {
-    var activeStartTime: UInt64 {
-        switch self {
-        case let .active(_, startTime, _):
-            return UInt64(startTime.timeIntervalSince1970)
-        default:
-            return 0
         }
     }
 }

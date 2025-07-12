@@ -19,13 +19,13 @@ extension SharedKey where Self == FileStorageKey<SessionData?>.Default {
 
 extension SharedKey where Self == AppStorageKey<String>.Default {
     static var lastGoal: Self {
-        Self[.appStorage("momentum.lastGoal"), default: ""]
+        Self[.appStorage("momentumLastGoal"), default: ""]
     }
 }
 
 extension SharedKey where Self == AppStorageKey<String>.Default {
     static var lastTimeMinutes: Self {
-        Self[.appStorage("momentum.lastTimeMinutes"), default: "30"]
+        Self[.appStorage("momentumLastTimeMinutes"), default: "30"]
     }
 }
 

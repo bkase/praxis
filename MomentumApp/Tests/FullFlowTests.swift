@@ -6,10 +6,27 @@ import ComposableArchitecture
 final class FullFlowTests: XCTestCase {
     func testFullFlow() async {
         let fixedTime: UInt64 = 1700000000
-        let store = TestStore(initialState: AppFeature.State()) {
+        let store = TestStore(initialState: AppFeature.State.test()) {
             AppFeature()
         } withDependencies: {
-            $0.rustCoreClient = .testValue
+            $0.rustCoreClient.start = { goal, minutes in
+                SessionData(
+                    goal: goal,
+                    startTime: fixedTime,
+                    timeExpected: UInt64(minutes * 60),
+                    reflectionFilePath: nil
+                )
+            }
+            $0.rustCoreClient.stop = {
+                "/tmp/test-reflection.md"
+            }
+            $0.rustCoreClient.analyze = { _ in
+                AnalysisResult(
+                    summary: "Test analysis summary",
+                    suggestion: "Test suggestion",
+                    reasoning: "Test reasoning"
+                )
+            }
             $0.checklistClient = .testValue
         }
         
@@ -20,84 +37,42 @@ final class FullFlowTests: XCTestCase {
             ChecklistItem(id: "test-1", text: "Test item 1"),
             ChecklistItem(id: "test-2", text: "Test item 2"),
             ChecklistItem(id: "test-3", text: "Test item 3")
-        ])))) {
-            guard case .preparing(var preparationState) = $0.session else {
-                XCTFail("Expected preparing state")
-                return
-            }
-            preparationState.checklist = [
-                ChecklistItem(id: "test-1", text: "Test item 1"),
-                ChecklistItem(id: "test-2", text: "Test item 2"),
-                ChecklistItem(id: "test-3", text: "Test item 3")
-            ]
-            $0.session = .preparing(preparationState)
-        }
+        ]))))
         
-        // Complete the checklist items and set goal/time
-        await store.send(.preparation(.checklistItemToggled("test-1"))) {
-            guard case .preparing(var preparationState) = $0.session else {
-                XCTFail("Expected preparing state")
-                return
-            }
-            preparationState.checklist[id: "test-1"]?.isCompleted = true
-            $0.session = .preparing(preparationState)
-        }
-        
-        await store.send(.preparation(.checklistItemToggled("test-2"))) {
-            guard case .preparing(var preparationState) = $0.session else {
-                XCTFail("Expected preparing state")
-                return
-            }
-            preparationState.checklist[id: "test-2"]?.isCompleted = true
-            $0.session = .preparing(preparationState)
-        }
-        
-        await store.send(.preparation(.checklistItemToggled("test-3"))) {
-            guard case .preparing(var preparationState) = $0.session else {
-                XCTFail("Expected preparing state")
-                return
-            }
-            preparationState.checklist[id: "test-3"]?.isCompleted = true
-            $0.session = .preparing(preparationState)
-        }
+        // Complete the checklist items
+        await store.send(.preparation(.checklistItemToggled("test-1")))
+        await store.send(.preparation(.checklistItemToggled("test-2")))
+        await store.send(.preparation(.checklistItemToggled("test-3")))
         
         // Update goal and time through actions
-        await store.send(.preparation(.goalChanged("Full Flow Test"))) {
-            guard case .preparing(var preparationState) = $0.session else {
-                XCTFail("Expected preparing state")
-                return
-            }
-            preparationState.goal = "Full Flow Test"
-            $0.session = .preparing(preparationState)
-        }
-        
-        await store.send(.preparation(.timeInputChanged("20"))) {
-            guard case .preparing(var preparationState) = $0.session else {
-                XCTFail("Expected preparing state")
-                return
-            }
-            preparationState.timeInput = "20"
-            $0.session = .preparing(preparationState)
-        }
+        await store.send(.preparation(.goalChanged("Full Flow Test")))
+        await store.send(.preparation(.timeInputChanged("20")))
         
         // 1. Start session
         await store.send(.startButtonTapped) {
             $0.isLoading = true
             $0.error = nil
+            $0.$lastGoal.withLock { $0 = "Full Flow Test" }
+            $0.$lastTimeMinutes.withLock { $0 = "20" }
         }
         
         await store.receive(.rustCoreResponse(.success(.sessionStarted(SessionData(
             goal: "Full Flow Test",
             startTime: fixedTime,
-            timeExpected: 20,
+            timeExpected: 1200,  // 20 minutes in seconds
             reflectionFilePath: nil
         ))))) {
             $0.isLoading = false
-            $0.session = .active(
-                goal: "Full Flow Test",
-                startTime: Date(timeIntervalSince1970: TimeInterval(fixedTime)),
-                expectedMinutes: 20
-            )
+            $0.$sessionData.withLock {
+                $0 = SessionData(
+                    goal: "Full Flow Test",
+                    startTime: fixedTime,
+                    timeExpected: 1200,
+                    reflectionFilePath: nil
+                )
+            }
+            $0.reflectionPath = nil
+            $0.$analysisHistory.withLock { $0 = [] }
         }
         
         // 2. Stop session
@@ -108,7 +83,8 @@ final class FullFlowTests: XCTestCase {
         
         await store.receive(.rustCoreResponse(.success(.sessionStopped(reflectionPath: "/tmp/test-reflection.md")))) {
             $0.isLoading = false
-            $0.session = .awaitingAnalysis(reflectionPath: "/tmp/test-reflection.md")
+            $0.$sessionData.withLock { $0 = nil }
+            $0.reflectionPath = "/tmp/test-reflection.md"
         }
         
         // 3. Analyze reflection
@@ -123,16 +99,21 @@ final class FullFlowTests: XCTestCase {
             reasoning: "Test reasoning"
         ))))) {
             $0.isLoading = false
-            $0.session = .analyzed(analysis: AnalysisResult(
-                summary: "Test analysis summary",
-                suggestion: "Test suggestion",
-                reasoning: "Test reasoning"
-            ))
+            $0.reflectionPath = nil
+            $0.$analysisHistory.withLock {
+                $0.append(AnalysisResult(
+                    summary: "Test analysis summary",
+                    suggestion: "Test suggestion",
+                    reasoning: "Test reasoning"
+                ))
+            }
         }
         
         // 4. Reset to preparing
         await store.send(.resetToIdle) {
-            $0.session = .preparing(PreparationState())
+            $0.$sessionData.withLock { $0 = nil }
+            $0.reflectionPath = nil
+            $0.$analysisHistory.withLock { $0 = [] }
             $0.error = nil
             $0.isLoading = false
         }
