@@ -4,6 +4,20 @@ import ComposableArchitecture
 
 @MainActor
 final class FullFlowTests: XCTestCase {
+    override func setUp() {
+        super.setUp()
+        // Reset shared state before each test
+        @Shared(.sessionData) var sessionData: SessionData?
+        @Shared(.lastGoal) var lastGoal: String
+        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        @Shared(.analysisHistory) var analysisHistory: [AnalysisResult]
+        
+        $sessionData.withLock { $0 = nil }
+        $lastGoal.withLock { $0 = "" }
+        $lastTimeMinutes.withLock { $0 = "30" }
+        $analysisHistory.withLock { $0 = [] }
+    }
+    
     func testFullFlow() async {
         let fixedTime: UInt64 = 1700000000
         

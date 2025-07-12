@@ -16,18 +16,28 @@ extension AppFeature.State {
         isLoading: Bool = false,
         destination: AppFeature.Destination.State? = nil
     ) -> Self {
+        // First reset all shared state to ensure clean state
+        @Shared(.sessionData) var sharedSessionData: SessionData?
+        @Shared(.lastGoal) var sharedLastGoal: String
+        @Shared(.lastTimeMinutes) var sharedLastTimeMinutes: String
+        @Shared(.analysisHistory) var sharedAnalysisHistory: [AnalysisResult]
+        
+        $sharedSessionData.withLock { $0 = sessionData }
+        $sharedLastGoal.withLock { $0 = lastGoal }
+        $sharedLastTimeMinutes.withLock { $0 = lastTimeMinutes }
+        $sharedAnalysisHistory.withLock { $0 = analysisHistory }
+        
+        // Now create state - the init() will use these shared values
         var state = AppFeature.State()
         
-        // Set shared values
-        state.$sessionData.withLock { $0 = sessionData }
-        state.$lastGoal.withLock { $0 = lastGoal }
-        state.$lastTimeMinutes.withLock { $0 = lastTimeMinutes }
-        state.$analysisHistory.withLock { $0 = analysisHistory }
+        // Override with specific destination if provided
+        if let destination = destination {
+            state.destination = destination
+        }
         
         // Set regular values
         state.reflectionPath = reflectionPath
         state.isLoading = isLoading
-        state.destination = destination
         
         return state
     }

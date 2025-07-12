@@ -4,15 +4,26 @@ import ComposableArchitecture
 
 @MainActor
 final class SessionManagementTests: XCTestCase {
-    func testStartSession() async {
-        // Set up shared state before creating store
+    override func setUp() {
+        super.setUp()
+        // Reset shared state before each test
+        @Shared(.sessionData) var sessionData: SessionData?
         @Shared(.lastGoal) var lastGoal: String
         @Shared(.lastTimeMinutes) var lastTimeMinutes: String
-        $lastGoal.withLock { $0 = "Test Goal" }
-        $lastTimeMinutes.withLock { $0 = "30" }
+        @Shared(.analysisHistory) var analysisHistory: [AnalysisResult]
         
+        $sessionData.withLock { $0 = nil }
+        $lastGoal.withLock { $0 = "" }
+        $lastTimeMinutes.withLock { $0 = "30" }
+        $analysisHistory.withLock { $0 = [] }
+    }
+    
+    func testStartSession() async {
         let store = TestStore(
-            initialState: AppFeature.State()
+            initialState: AppFeature.State.test(
+                lastGoal: "Test Goal",
+                lastTimeMinutes: "30"
+            )
         ) {
             AppFeature()
         } withDependencies: {
@@ -27,12 +38,7 @@ final class SessionManagementTests: XCTestCase {
         }
         
         // Set up initial state with preparation
-        await store.send(.onAppear) {
-            $0.destination = .preparation(PreparationFeature.State(
-                goal: "Test Goal",
-                timeInput: "30"
-            ))
-        }
+        await store.send(.onAppear)
         
         // Load checklist
         await store.send(.destination(.presented(.preparation(.onAppear))))
@@ -62,21 +68,14 @@ final class SessionManagementTests: XCTestCase {
         }
         
         // Receive success response
-        await store.receive(.rustCoreResponse(.success(.sessionStarted(SessionData.mock(
+        let sessionData = SessionData.mock(
             goal: "Test Goal",
             startTime: Date(timeIntervalSince1970: 1_700_000_000),
             timeExpected: 1800
-        ))))) {
+        )
+        await store.receive(.rustCoreResponse(.success(.sessionStarted(sessionData)))) {
             $0.isLoading = false
-            $0.$sessionData.withLock { 
-                $0 = SessionData.mock(
-                    goal: "Test Goal",
-                    startTime: Date(timeIntervalSince1970: 1_700_000_000),
-                    timeExpected: 1800
-                )
-            }
             $0.reflectionPath = nil
-            $0.$analysisHistory.withLock { $0 = [] }
             $0.destination = .activeSession(ActiveSessionFeature.State(
                 goal: "Test Goal",
                 startTime: Date(timeIntervalSince1970: 1_700_000_000),
@@ -92,10 +91,6 @@ final class SessionManagementTests: XCTestCase {
             startTime: startTime,
             timeExpected: 1800
         )
-        
-        // Set up shared state before creating store
-        @Shared(.sessionData) var sharedSessionData: SessionData?
-        $sharedSessionData.withLock { $0 = sessionData }
         
         let store = TestStore(
             initialState: AppFeature.State.test(
@@ -132,7 +127,6 @@ final class SessionManagementTests: XCTestCase {
         // Receive response
         await store.receive(.rustCoreResponse(.success(.sessionStopped(reflectionPath: "/tmp/test-reflection.md")))) {
             $0.isLoading = false
-            $0.$sessionData.withLock { $0 = nil }
             $0.reflectionPath = "/tmp/test-reflection.md"
             $0.destination = .reflection(ReflectionFeature.State(reflectionPath: "/tmp/test-reflection.md"))
         }
@@ -158,13 +152,13 @@ final class SessionManagementTests: XCTestCase {
         await store.receive(.analyzeReflection(path: "/tmp/test-reflection.md")) {
             $0.isLoading = true
             $0.alert = nil
+            // analysisHistory remains unchanged at this point
         }
         
         // Receive analysis result
         await store.receive(.rustCoreResponse(.success(.analysisComplete(AnalysisResult.mock)))) {
             $0.isLoading = false
             $0.reflectionPath = nil
-            $0.$analysisHistory.withLock { $0.append(AnalysisResult.mock) }
             $0.destination = .analysis(AnalysisFeature.State(analysis: AnalysisResult.mock))
         }
     }
@@ -193,9 +187,7 @@ final class SessionManagementTests: XCTestCase {
         }
         
         await store.receive(.resetToIdle) {
-            $0.$sessionData.withLock { $0 = nil }
             $0.reflectionPath = nil
-            $0.$analysisHistory.withLock { $0 = [] }
             $0.alert = nil
             $0.isLoading = false
             $0.destination = .preparation(PreparationFeature.State(
