@@ -18,17 +18,17 @@ final class ChecklistTests: XCTestCase {
             ChecklistItem(id: "test-1", text: "Test item 1"),
             ChecklistItem(id: "test-2", text: "Test item 2"),
             ChecklistItem(id: "test-3", text: "Test item 3")
-        ])))) { _ in
-            // Checklist is loaded into preparation state
-            // The computed session property will reflect this change
-        }
+        ])))) // Remove the closure since state doesn't change at the root level
     }
     
     func testChecklistInteraction() async {
-        let store = TestStore(initialState: AppFeature.State.test(
-            lastGoal: "Test Goal",
-            lastTimeMinutes: "30"
-        )) {
+        // Set up shared state before creating store
+        @Shared(.lastGoal) var lastGoal: String
+        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        $lastGoal.withLock { $0 = "Test Goal" }
+        $lastTimeMinutes.withLock { $0 = "30" }
+        
+        let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         } withDependencies: {
             $0.checklistClient.load = {

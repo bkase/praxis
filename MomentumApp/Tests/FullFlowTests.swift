@@ -6,7 +6,14 @@ import ComposableArchitecture
 final class FullFlowTests: XCTestCase {
     func testFullFlow() async {
         let fixedTime: UInt64 = 1700000000
-        let store = TestStore(initialState: AppFeature.State.test()) {
+        
+        // Set up initial shared state with the values we want
+        @Shared(.lastGoal) var lastGoal: String
+        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        $lastGoal.withLock { $0 = "Full Flow Test" }
+        $lastTimeMinutes.withLock { $0 = "20" }
+        
+        let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         } withDependencies: {
             $0.rustCoreClient.start = { goal, minutes in
@@ -43,10 +50,6 @@ final class FullFlowTests: XCTestCase {
         await store.send(.preparation(.checklistItemToggled("test-1")))
         await store.send(.preparation(.checklistItemToggled("test-2")))
         await store.send(.preparation(.checklistItemToggled("test-3")))
-        
-        // Update goal and time through actions
-        await store.send(.preparation(.goalChanged("Full Flow Test")))
-        await store.send(.preparation(.timeInputChanged("20")))
         
         // 1. Start session
         await store.send(.startButtonTapped) {

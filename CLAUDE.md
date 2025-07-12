@@ -141,7 +141,7 @@ cd momentum && cargo clippy
 ## Important Task Completion Checklist
 
 When completing any task (especially from docs/todos/):
-1. If starting a new Claude session, first read `@docs/swift-composable-architecture.md` to understand TCA patterns
+1. ALWAYS read `@docs/swift-composable-architecture.md` BEFORE starting work on any Swift tasks to understand TCA patterns
 2. Build the app: `xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp build -skipMacroValidation`
 3. Run ALL tests: `xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp test -skipMacroValidation`
 4. Ensure ALL tests pass with no failures

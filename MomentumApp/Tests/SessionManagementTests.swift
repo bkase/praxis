@@ -5,11 +5,14 @@ import ComposableArchitecture
 @MainActor
 final class SessionManagementTests: XCTestCase {
     func testStartSession() async {
+        // Set up shared state before creating store
+        @Shared(.lastGoal) var lastGoal: String
+        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        $lastGoal.withLock { $0 = "Test Goal" }
+        $lastTimeMinutes.withLock { $0 = "30" }
+        
         let store = TestStore(
-            initialState: AppFeature.State.test(
-                lastGoal: "Test Goal",
-                lastTimeMinutes: "30"
-            )
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         } withDependencies: {
@@ -67,8 +70,12 @@ final class SessionManagementTests: XCTestCase {
             timeExpected: 1800
         )
         
+        // Set up shared state before creating store
+        @Shared(.sessionData) var sharedSessionData: SessionData?
+        $sharedSessionData.withLock { $0 = sessionData }
+        
         let store = TestStore(
-            initialState: AppFeature.State.test(sessionData: sessionData)
+            initialState: AppFeature.State()
         ) {
             AppFeature()
         } withDependencies: {

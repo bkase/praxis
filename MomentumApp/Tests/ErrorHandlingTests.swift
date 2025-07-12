@@ -7,13 +7,24 @@ final class ErrorHandlingTests: XCTestCase {
     override func setUp() {
         super.setUp()
         // Reset shared state before each test
-        @Shared(.sessionData) var sessionData: SessionData? = nil
-        @Shared(.lastGoal) var lastGoal = ""
-        @Shared(.lastTimeMinutes) var lastTimeMinutes = "30"
-        @Shared(.analysisHistory) var analysisHistory: [AnalysisResult] = []
+        @Shared(.sessionData) var sessionData: SessionData?
+        @Shared(.lastGoal) var lastGoal: String
+        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        @Shared(.analysisHistory) var analysisHistory: [AnalysisResult]
+        
+        $sessionData.withLock { $0 = nil }
+        $lastGoal.withLock { $0 = "" }
+        $lastTimeMinutes.withLock { $0 = "30" }
+        $analysisHistory.withLock { $0 = [] }
     }
     
     func testErrorHandling() async {
+        // Set up initial values before creating the store
+        @Shared(.lastGoal) var lastGoal: String
+        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        $lastGoal.withLock { $0 = "Test Goal" }
+        $lastTimeMinutes.withLock { $0 = "30" }
+        
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
         } withDependencies: {
@@ -22,15 +33,11 @@ final class ErrorHandlingTests: XCTestCase {
             }
         }
         
-        // Set up initial values
-        @Shared(.lastGoal) var lastGoal = "Test Goal"
-        @Shared(.lastTimeMinutes) var lastTimeMinutes = "30"
-        
         // Try to start a session
         await store.send(.startButtonTapped) {
             $0.isLoading = true
             $0.error = nil
-            // Save last used values
+            // The reducer should save last used values
             $0.$lastGoal.withLock { $0 = "Test Goal" }
             $0.$lastTimeMinutes.withLock { $0 = "30" }
         }
@@ -44,7 +51,8 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testStartSessionWhenAlreadyActive() async {
         // Start with an active session
-        @Shared(.sessionData) var sessionData: SessionData? = SessionData.mock(goal: "Existing Goal")
+        @Shared(.sessionData) var sessionData: SessionData?
+        $sessionData.withLock { $0 = SessionData.mock(goal: "Existing Goal") }
         
         let store = TestStore(
             initialState: AppFeature.State()
@@ -86,13 +94,12 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testClearError() async {
         let store = TestStore(
-            initialState: AppFeature.State()
+            initialState: AppFeature.State.test(
+                error: .unexpected("Some error")
+            )
         ) {
             AppFeature()
         }
-        
-        // Manually set an error
-        store.state.error = .unexpected("Some error")
         
         await store.send(.clearError) {
             $0.error = nil
@@ -101,8 +108,10 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testInvalidTimeInput() async {
         // Set up state with invalid time
-        @Shared(.lastGoal) var lastGoal = "Test Goal"
-        @Shared(.lastTimeMinutes) var lastTimeMinutes = "invalid"
+        @Shared(.lastGoal) var lastGoal: String
+        @Shared(.lastTimeMinutes) var lastTimeMinutes: String
+        $lastGoal.withLock { $0 = "Test Goal" }
+        $lastTimeMinutes.withLock { $0 = "invalid" }
         
         let store = TestStore(initialState: AppFeature.State()) {
             AppFeature()
@@ -131,12 +140,12 @@ final class ErrorHandlingTests: XCTestCase {
     
     func testCancelCurrentOperation() async {
         let store = TestStore(
-            initialState: AppFeature.State()
+            initialState: AppFeature.State.test(
+                isLoading: true
+            )
         ) {
             AppFeature()
         }
-        
-        store.state.isLoading = true
         
         await store.send(.cancelCurrentOperation) {
             $0.isLoading = false
