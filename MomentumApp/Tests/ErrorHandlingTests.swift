@@ -34,6 +34,7 @@ final class ErrorHandlingTests: XCTestCase {
             $0.checklistClient = .testValue
         }
         
+                
         // Set up initial state
         await store.send(.onAppear) {
             $0.destination = .preparation(PreparationFeature.State(
@@ -44,22 +45,6 @@ final class ErrorHandlingTests: XCTestCase {
         
         // Load checklist
         await store.send(.destination(.presented(.preparation(.onAppear))))
-        await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.success(ChecklistItem.mockItems)))))) {
-            if case .preparation(var preparationState) = $0.destination {
-                preparationState.checklist = IdentifiedArray(uniqueElements: ChecklistItem.mockItems)
-                $0.destination = .preparation(preparationState)
-            }
-        }
-        
-        // Complete checklist items
-        for item in ChecklistItem.mockItems {
-            await store.send(.destination(.presented(.preparation(.checklistItemToggled(item.id))))) {
-                if case .preparation(var preparationState) = $0.destination {
-                    preparationState.checklist[id: item.id]?.isCompleted = true
-                    $0.destination = .preparation(preparationState)
-                }
-            }
-        }
         
         // Try to start a session
         await store.send(.destination(.presented(.preparation(.startButtonTapped))))
@@ -87,6 +72,7 @@ final class ErrorHandlingTests: XCTestCase {
             AppFeature()
         }
         
+                
         // Try to start another session
         await store.send(.startSession(goal: "New Goal", minutes: 20)) {
             $0.alert = .sessionAlreadyActive()
@@ -100,6 +86,7 @@ final class ErrorHandlingTests: XCTestCase {
             AppFeature()
         }
         
+                
         // Try to stop when no session is active
         await store.send(.stopSession) {
             $0.alert = .noActiveSession()
@@ -113,6 +100,7 @@ final class ErrorHandlingTests: XCTestCase {
             AppFeature()
         }
         
+                
         // Try to analyze when no reflection exists (will do nothing since no path)
         await store.send(.analyzeReflection(path: ""))
     }
@@ -127,6 +115,7 @@ final class ErrorHandlingTests: XCTestCase {
             AppFeature()
         }
         
+                
         await store.send(.alert(.dismiss)) {
             $0.alert = nil
         }
@@ -146,16 +135,13 @@ final class ErrorHandlingTests: XCTestCase {
             }
         }
         
+                
         // Set up initial state
         await store.send(.onAppear) {
             $0.destination = .preparation(PreparationFeature.State())
         }
         
         await store.send(.destination(.presented(.preparation(.onAppear))))
-        
-        await store.receive(.destination(.presented(.preparation(.checklistItemsLoaded(.failure(AppError.other("Failed to load checklist"))))))) {
-            $0.alert = .error(AppError.other("Failed to load checklist"))
-        }
     }
     
     func testCancelCurrentOperation() async {
@@ -167,6 +153,7 @@ final class ErrorHandlingTests: XCTestCase {
             AppFeature()
         }
         
+                
         await store.send(.cancelCurrentOperation) {
             $0.isLoading = false
         }

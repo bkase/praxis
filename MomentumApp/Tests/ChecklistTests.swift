@@ -31,6 +31,7 @@ final class ChecklistTests: XCTestCase {
             }
         }
         
+                
         // Load checklist on appear
         await store.send(.onAppear)
         
@@ -59,6 +60,7 @@ final class ChecklistTests: XCTestCase {
             }
         }
         
+                
         // Load checklist first
         await store.send(.onAppear)
         await store.receive(.checklistItemsLoaded(.success(ChecklistItem.mockItems))) {
@@ -126,6 +128,7 @@ final class ChecklistTests: XCTestCase {
             PreparationFeature()
         }
         
+                
         // Test goal update
         await store.send(.goalChanged("New Goal")) {
             $0.goal = "New Goal"
