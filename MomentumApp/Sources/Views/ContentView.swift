@@ -21,7 +21,7 @@ struct ContentView: View {
                     }
                 }
         }
-        .frame(width: 320, height: 400)
+        .frame(width: 360, height: 500)
         .background(Color(NSColor.windowBackgroundColor))
         .onKeyPress(.escape) {
             if store.isLoading {
