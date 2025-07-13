@@ -8,6 +8,8 @@ struct PreparationFeature {
         var goal: String = ""
         var timeInput: String = ""
         var checklist: IdentifiedArrayOf<ChecklistItem> = []
+        var completedChecklistItemCount: Int = 0
+        var totalChecklistItemCount: Int = 0
         
         var isStartButtonEnabled: Bool {
             !goal.isEmpty &&
@@ -18,17 +20,23 @@ struct PreparationFeature {
         init(
             goal: String = "",
             timeInput: String = "",
-            checklist: IdentifiedArrayOf<ChecklistItem> = []
+            checklist: IdentifiedArrayOf<ChecklistItem> = [],
+            completedChecklistItemCount: Int? = nil,
+            totalChecklistItemCount: Int? = nil
         ) {
             self.goal = goal
             self.timeInput = timeInput
             self.checklist = checklist
+            self.completedChecklistItemCount = completedChecklistItemCount ?? checklist.filter { $0.isCompleted }.count
+            self.totalChecklistItemCount = totalChecklistItemCount ?? checklist.count
         }
         
         init(preparationState: PreparationState) {
             self.goal = preparationState.goal
             self.timeInput = preparationState.timeInput
             self.checklist = preparationState.checklist
+            self.completedChecklistItemCount = preparationState.checklist.filter { $0.isCompleted }.count
+            self.totalChecklistItemCount = preparationState.checklist.count
         }
         
         var preparationState: PreparationState {
@@ -68,6 +76,8 @@ struct PreparationFeature {
                 
             case let .checklistItemsLoaded(.success(items)):
                 state.checklist = IdentifiedArray(uniqueElements: items)
+                state.totalChecklistItemCount = items.count
+                state.completedChecklistItemCount = items.filter { $0.isCompleted }.count
                 return .none
                 
             case .checklistItemsLoaded(.failure):
@@ -76,6 +86,13 @@ struct PreparationFeature {
                 
             case let .checklistItemToggled(id):
                 state.checklist[id: id]?.isCompleted.toggle()
+                if let item = state.checklist[id: id] {
+                    if item.isCompleted {
+                        state.completedChecklistItemCount += 1
+                    } else {
+                        state.completedChecklistItemCount -= 1
+                    }
+                }
                 return .none
                 
             case let .goalChanged(newGoal):

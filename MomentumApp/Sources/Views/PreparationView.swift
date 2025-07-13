@@ -5,97 +5,86 @@ struct PreparationView: View {
     @Bindable var store: StoreOf<PreparationFeature>
     @FocusState private var isGoalFieldFocused: Bool
     
-    private var isTimeInputValid: Bool {
-        Int(store.timeInput).map { $0 > 0 } == true
-    }
-    
     var body: some View {
         VStack(alignment: .leading, spacing: 24) {
-            Text("Prepare Your Focus Session")
-                .font(.headline)
+            Text("Compose Your Intention")
+                .font(.momentumTitle)
+                .foregroundStyle(Color.textPrimary)
             
             VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("What's your goal?", systemImage: "target")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .labelStyle(.titleOnly)
+                VStack(alignment: .leading, spacing: 12) {
+                    Text("GROUNDING RITUAL")
+                        .font(.sectionLabel)
+                        .foregroundStyle(Color.textSecondary)
+                        .tracking(0.5)
                     
-                    TextField("e.g., Complete project proposal", text: Binding(
+                    TextField("Write a report", text: Binding(
                         get: { store.goal },
                         set: { store.send(.goalChanged($0)) }
                     ))
-                    .textFieldStyle(.roundedBorder)
+                    .textFieldStyle(.intention)
                     .focused($isGoalFieldFocused)
                     .onSubmit {
                         if store.isStartButtonEnabled {
                             startSession()
                         }
                     }
-                }
-                
-                VStack(alignment: .leading, spacing: 8) {
-                    Label("Expected time (minutes)", systemImage: "clock")
-                        .font(.subheadline)
-                        .foregroundStyle(.secondary)
-                        .labelStyle(.titleOnly)
                     
-                    TextField("30", text: Binding(
-                        get: { store.timeInput },
-                        set: { store.send(.timeInputChanged($0)) }
-                    ))
-                    .textFieldStyle(.roundedBorder)
-                    .overlay(
-                        RoundedRectangle(cornerRadius: 6)
-                            .stroke(!store.timeInput.isEmpty && !isTimeInputValid ? Color.red : Color.clear, lineWidth: 1)
-                    )
-                    .onSubmit {
-                        if store.isStartButtonEnabled {
-                            startSession()
+                    DurationPicker(
+                        timeInput: Binding(
+                            get: { store.timeInput },
+                            set: { store.send(.timeInputChanged($0)) }
+                        ),
+                        onChange: { newValue in
+                            store.send(.timeInputChanged(newValue))
                         }
-                    }
+                    )
                 }
                 
                 if !store.checklist.isEmpty {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Label("Pre-session checklist", systemImage: "checklist")
-                            .font(.subheadline)
-                            .foregroundStyle(.secondary)
-                            .labelStyle(.titleOnly)
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack {
+                            Text("Pre-session checklist")
+                                .font(.sectionLabel)
+                                .foregroundStyle(Color.textSecondary)
+                                .tracking(0.5)
+                            
+                            Spacer()
+                            
+                            ProgressIndicatorView(
+                                completed: store.completedChecklistItemCount,
+                                total: store.totalChecklistItemCount
+                            )
+                        }
                         
-                        VStack(alignment: .leading, spacing: 6) {
+                        VStack(spacing: 8) {
                             ForEach(store.checklist) { item in
-                                HStack {
-                                    Toggle(
-                                        item.text,
-                                        isOn: .init(
-                                            get: { item.isCompleted },
-                                            set: { _ in store.send(.checklistItemToggled(item.id)) }
-                                        )
-                                    )
-                                    .font(.callout)
-                                    .toggleStyle(.checkbox)
-                                }
-                                .padding(.vertical, 2)
+                                ChecklistRowView(
+                                    item: item,
+                                    onToggle: {
+                                        store.send(.checklistItemToggled(item.id))
+                                    }
+                                )
                             }
                         }
-                        .padding(.horizontal, 12)
-                        .padding(.vertical, 8)
-                        .background(Color(NSColor.controlBackgroundColor))
-                        .cornerRadius(8)
                     }
                 }
             }
             
-            Button(action: startSession) {
-                Label("Start Focus", systemImage: "play.fill")
+            HStack {
+                Spacer()
+                Button("Enter the Sanctuary") {
+                    startSession()
+                }
+                .buttonStyle(.sanctuary)
+                .disabled(!store.isStartButtonEnabled)
+                .keyboardShortcut(.return, modifiers: .command)
+                Spacer()
             }
-            .buttonStyle(.borderedProminent)
-            .controlSize(.large)
-            .disabled(!store.isStartButtonEnabled)
-            .frame(maxWidth: .infinity)
-            .keyboardShortcut(.return, modifiers: .command)
+            .padding(.top, 12)
         }
+        .padding(24)
+        .background(Color.canvasBackground)
         .onAppear {
             isGoalFieldFocused = true
             store.send(.onAppear)

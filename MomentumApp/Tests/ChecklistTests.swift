@@ -47,6 +47,8 @@ struct ChecklistTests {
                 ChecklistItem(id: "test-2", text: "Test item 2"),
                 ChecklistItem(id: "test-3", text: "Test item 3")
             ]
+            $0.totalChecklistItemCount = 3
+            $0.completedChecklistItemCount = 0
         }
     }
     
@@ -68,21 +70,26 @@ struct ChecklistTests {
         await store.send(.onAppear)
         await store.receive(.checklistItemsLoaded(.success(ChecklistItem.mockItems))) {
             $0.checklist = IdentifiedArray(uniqueElements: ChecklistItem.mockItems)
+            $0.totalChecklistItemCount = 3
+            $0.completedChecklistItemCount = 0
         }
         
         // Toggle first item
         await store.send(.checklistItemToggled("test-1")) {
             $0.checklist[id: "test-1"]?.isCompleted = true
+            $0.completedChecklistItemCount = 1
         }
         
         // Toggle second item
         await store.send(.checklistItemToggled("test-2")) {
             $0.checklist[id: "test-2"]?.isCompleted = true
+            $0.completedChecklistItemCount = 2
         }
         
         // Toggle third item
         await store.send(.checklistItemToggled("test-3")) {
             $0.checklist[id: "test-3"]?.isCompleted = true
+            $0.completedChecklistItemCount = 3
         }
         
         // Verify all items are completed
@@ -109,11 +116,14 @@ struct ChecklistTests {
             ChecklistItem(id: "1", text: "Item 1", isCompleted: false),
             ChecklistItem(id: "2", text: "Item 2", isCompleted: false)
         ]
+        state.totalChecklistItemCount = 2
+        state.completedChecklistItemCount = 0
         #expect(!state.isStartButtonEnabled)
         
         // Complete all checklist items
         state.checklist[id: "1"]?.isCompleted = true
         state.checklist[id: "2"]?.isCompleted = true
+        state.completedChecklistItemCount = 2
         #expect(state.isStartButtonEnabled)
         
         // Test invalid time inputs
