@@ -1,14 +1,17 @@
 import SwiftUI
 
 struct ChecklistToggleStyle: ToggleStyle {
+    @State private var isHovered = false
+    @State private var isPressed = false
+    
     func makeBody(configuration: Configuration) -> some View {
         HStack(spacing: 12) {
             RoundedRectangle(cornerRadius: 2)
-                .fill(configuration.isOn ? Color.checkboxFill : Color.clear)
+                .fill(checkboxFill(isOn: configuration.isOn))
                 .frame(width: 16, height: 16)
                 .overlay(
                     RoundedRectangle(cornerRadius: 2)
-                        .stroke(configuration.isOn ? Color.checkboxFill : Color.borderNeutral, lineWidth: 1)
+                        .stroke(checkboxBorder(isOn: configuration.isOn, isHovered: isHovered), lineWidth: 2)
                 )
                 .overlay(
                     Image(systemName: "checkmark")
@@ -17,18 +20,43 @@ struct ChecklistToggleStyle: ToggleStyle {
                         .opacity(configuration.isOn ? 1 : 0)
                         .scaleEffect(configuration.isOn ? 1 : 0.5)
                 )
-                .animation(.interactiveSpring(duration: 0.2), value: configuration.isOn)
-                .onTapGesture {
-                    configuration.isOn.toggle()
-                }
+                .scaleEffect(isPressed ? 0.9 : 1.0)
+                .animation(.easeOut(duration: 0.1), value: isPressed)
+                .animation(.easeOut(duration: 0.2), value: configuration.isOn)
             
             configuration.label
-                .font(.checklistItem)
+                .font(.system(size: 14))
                 .foregroundStyle(configuration.isOn ? Color.textSecondary : Color.textPrimary)
-                .strikethrough(configuration.isOn, color: Color.textSecondary)
-                .animation(.interactiveSpring(duration: 0.2), value: configuration.isOn)
+                .animation(.easeOut(duration: 0.2), value: configuration.isOn)
             
             Spacer()
+        }
+        .contentShape(Rectangle())
+        .onTapGesture {
+            isPressed = true
+            configuration.isOn.toggle()
+            
+            // Reset pressed state after a short delay
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) {
+                isPressed = false
+            }
+        }
+        .onHover { hovering in
+            isHovered = hovering
+        }
+    }
+    
+    private func checkboxFill(isOn: Bool) -> Color {
+        isOn ? Color.accentGold : Color.clear
+    }
+    
+    private func checkboxBorder(isOn: Bool, isHovered: Bool) -> Color {
+        if isOn {
+            return Color.accentGold
+        } else if isHovered {
+            return Color.accentGold
+        } else {
+            return Color.borderNeutral
         }
     }
 }

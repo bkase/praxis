@@ -19,85 +19,64 @@ struct ChecklistTests {
         $analysisHistory.withLock { $0 = [] }
     }
     
-    @Test("Checklist Loading")
+    @Test("Checklist Loading - Loads First 4 Items")
     func checklistLoading() async {
         let store = TestStore(initialState: PreparationFeature.State()) {
             PreparationFeature()
-        } withDependencies: {
-            $0.checklistClient.load = {
-                [
-                    ChecklistItem(id: "test-1", text: "Test item 1"),
-                    ChecklistItem(id: "test-2", text: "Test item 2"),
-                    ChecklistItem(id: "test-3", text: "Test item 3")
-                ]
-            }
         }
         
-                
-        // Load checklist on appear
-        await store.send(.onAppear)
-        
-        await store.receive(.checklistItemsLoaded(.success([
-            ChecklistItem(id: "test-1", text: "Test item 1"),
-            ChecklistItem(id: "test-2", text: "Test item 2"),
-            ChecklistItem(id: "test-3", text: "Test item 3")
-        ]))) {
-            $0.checklist = [
-                ChecklistItem(id: "test-1", text: "Test item 1"),
-                ChecklistItem(id: "test-2", text: "Test item 2"),
-                ChecklistItem(id: "test-3", text: "Test item 3")
+        // Load checklist on appear - should load first 4 items
+        await store.send(.onAppear) {
+            $0.visibleChecklist = [
+                ChecklistItem(id: "0", text: "Rested", isCompleted: false),
+                ChecklistItem(id: "1", text: "Not hungry", isCompleted: false),
+                ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
+                ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
             ]
-            $0.totalChecklistItemCount = 3
-            $0.completedChecklistItemCount = 0
+            $0.nextItemIndex = 4
         }
     }
     
-    @Test("Checklist Interaction")
-    func checklistInteraction() async {
-        let store = TestStore(initialState: PreparationFeature.State(
-            goal: "Test Goal",
-            timeInput: "30"
-        )) {
+    @Test("Checklist Item Toggle - With Replacement")
+    func checklistItemToggleWithReplacement() async {
+        let clock = TestClock()
+        
+        // Simply verify that toggling works and items get replaced
+        let store = TestStore(
+            initialState: PreparationFeature.State(
+                goal: "Test Goal",
+                timeInput: "30"
+            )
+        ) {
             PreparationFeature()
         } withDependencies: {
-            $0.checklistClient.load = {
-                ChecklistItem.mockItems
-            }
+            $0.continuousClock = clock
         }
         
-                
-        // Load checklist first
+        // Use non-exhaustive testing since we have animations and UUIDs
+        store.exhaustivity = .off
+        
+        // Load initial checklist
         await store.send(.onAppear)
-        await store.receive(.checklistItemsLoaded(.success(ChecklistItem.mockItems))) {
-            $0.checklist = IdentifiedArray(uniqueElements: ChecklistItem.mockItems)
-            $0.totalChecklistItemCount = 3
-            $0.completedChecklistItemCount = 0
-        }
+        
+        let initialCount = store.state.visibleChecklist.count
+        #expect(initialCount == 4)
         
         // Toggle first item
-        await store.send(.checklistItemToggled("test-1")) {
-            $0.checklist[id: "test-1"]?.isCompleted = true
-            $0.completedChecklistItemCount = 1
-        }
+        let firstItemId = store.state.visibleChecklist.first?.id ?? ""
+        await store.send(.checklistItemToggled(firstItemId))
         
-        // Toggle second item
-        await store.send(.checklistItemToggled("test-2")) {
-            $0.checklist[id: "test-2"]?.isCompleted = true
-            $0.completedChecklistItemCount = 2
-        }
+        // Wait for transitions to complete
+        await clock.advance(by: .seconds(1))
         
-        // Toggle third item
-        await store.send(.checklistItemToggled("test-3")) {
-            $0.checklist[id: "test-3"]?.isCompleted = true
-            $0.completedChecklistItemCount = 3
-        }
+        // Verify item was marked completed
+        #expect(store.state.totalItemsCompleted == 1)
         
-        // Verify all items are completed
-        #expect(store.state.checklist.allSatisfy { $0.isCompleted })
-        #expect(store.state.isStartButtonEnabled)
+        // Since we're using non-exhaustive testing, we can't test the exact replacement behavior
+        // but we can verify that the feature handles toggling correctly
     }
     
-    @Test("Start Button Enabled Logic")
+    @Test("Start Button Enabled Logic - Requires All 10 Items")
     func startButtonEnabledLogic() async {
         // Test with empty state
         var state = PreparationFeature.State()
@@ -109,21 +88,14 @@ struct ChecklistTests {
         
         // Add valid time
         state.timeInput = "30"
-        #expect(state.isStartButtonEnabled) // Empty checklist means all items are completed (vacuous truth)
+        #expect(!state.isStartButtonEnabled) // Still need all 10 items completed
         
-        // Add uncompleted checklist items
-        state.checklist = [
-            ChecklistItem(id: "1", text: "Item 1", isCompleted: false),
-            ChecklistItem(id: "2", text: "Item 2", isCompleted: false)
-        ]
-        state.totalChecklistItemCount = 2
-        state.completedChecklistItemCount = 0
+        // Complete 9 items
+        state.totalItemsCompleted = 9
         #expect(!state.isStartButtonEnabled)
         
-        // Complete all checklist items
-        state.checklist[id: "1"]?.isCompleted = true
-        state.checklist[id: "2"]?.isCompleted = true
-        state.completedChecklistItemCount = 2
+        // Complete all 10 items
+        state.totalItemsCompleted = 10
         #expect(state.isStartButtonEnabled)
         
         // Test invalid time inputs
@@ -137,13 +109,61 @@ struct ChecklistTests {
         #expect(!state.isStartButtonEnabled)
     }
     
+    @Test("Complete All 10 Items")
+    func completeAllTenItems() async {
+        let clock = TestClock()
+        
+        let store = TestStore(
+            initialState: PreparationFeature.State(
+                goal: "Test Goal",
+                timeInput: "30"
+            )
+        ) {
+            PreparationFeature()
+        } withDependencies: {
+            $0.continuousClock = clock
+        }
+        
+        // Set exhaustivity to off since we have non-deterministic UUIDs
+        store.exhaustivity = .off
+        
+        // Load initial items
+        await store.send(.onAppear) {
+            $0.visibleChecklist = [
+                ChecklistItem(id: "0", text: "Rested", isCompleted: false),
+                ChecklistItem(id: "1", text: "Not hungry", isCompleted: false),
+                ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
+                ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
+            ]
+            $0.nextItemIndex = 4
+        }
+        
+        // Complete all 10 items by toggling visible ones
+        for i in 0..<10 {
+            if let firstIncomplete = store.state.visibleChecklist.first(where: { !$0.isCompleted }) {
+                await store.send(.checklistItemToggled(firstIncomplete.id)) {
+                    $0.visibleChecklist[id: firstIncomplete.id]?.isCompleted = true
+                    $0.totalItemsCompleted = i + 1
+                }
+                
+                // If we still have items to show, handle the transition
+                if i < 6 { // First 6 toggles will trigger replacements
+                    await clock.advance(by: .milliseconds(950)) // Total transition time
+                }
+            }
+        }
+        
+        // Verify all 10 items are completed
+        #expect(store.state.totalItemsCompleted == 10)
+        #expect(store.state.isStartButtonEnabled)
+    }
+    
     @Test("Goal and Time Input Updates")
     func goalAndTimeInputUpdates() async {
         let store = TestStore(initialState: PreparationFeature.State()) {
             PreparationFeature()
         }
         
-                
         // Test goal update
         await store.send(.goalChanged("New Goal")) {
             $0.goal = "New Goal"

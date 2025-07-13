@@ -6,84 +6,21 @@ struct PreparationView: View {
     @FocusState private var isGoalFieldFocused: Bool
     
     var body: some View {
-        VStack(alignment: .leading, spacing: 24) {
-            Text("Compose Your Intention")
-                .font(.momentumTitle)
-                .foregroundStyle(Color.textPrimary)
+        VStack(spacing: 0) {
+            titleSection
             
-            VStack(alignment: .leading, spacing: 20) {
-                VStack(alignment: .leading, spacing: 12) {
-                    Text("GROUNDING RITUAL")
-                        .font(.sectionLabel)
-                        .foregroundStyle(Color.textSecondary)
-                        .tracking(0.5)
-                    
-                    TextField("Write a report", text: Binding(
-                        get: { store.goal },
-                        set: { store.send(.goalChanged($0)) }
-                    ))
-                    .textFieldStyle(.intention)
-                    .focused($isGoalFieldFocused)
-                    .onSubmit {
-                        if store.isStartButtonEnabled {
-                            startSession()
-                        }
-                    }
-                    
-                    DurationPicker(
-                        timeInput: Binding(
-                            get: { store.timeInput },
-                            set: { store.send(.timeInputChanged($0)) }
-                        ),
-                        onChange: { newValue in
-                            store.send(.timeInputChanged(newValue))
-                        }
-                    )
-                }
-                
-                if !store.checklist.isEmpty {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text("Pre-session checklist")
-                                .font(.sectionLabel)
-                                .foregroundStyle(Color.textSecondary)
-                                .tracking(0.5)
-                            
-                            Spacer()
-                            
-                            ProgressIndicatorView(
-                                completed: store.completedChecklistItemCount,
-                                total: store.totalChecklistItemCount
-                            )
-                        }
-                        
-                        VStack(spacing: 8) {
-                            ForEach(store.checklist) { item in
-                                ChecklistRowView(
-                                    item: item,
-                                    onToggle: {
-                                        store.send(.checklistItemToggled(item.id))
-                                    }
-                                )
-                            }
-                        }
-                    }
-                }
+            VStack(alignment: .leading, spacing: 24) {
+                intentionInput
+                durationPicker
+                checklistSection
             }
             
-            HStack {
-                Spacer()
-                Button("Enter the Sanctuary") {
-                    startSession()
-                }
-                .buttonStyle(.sanctuary)
-                .disabled(!store.isStartButtonEnabled)
-                .keyboardShortcut(.return, modifiers: .command)
-                Spacer()
-            }
-            .padding(.top, 12)
+            buttonAndProgress
         }
-        .padding(24)
+        .frame(width: 320)
+        .padding(.top, 24)
+        .padding(.horizontal, 20)
+        .padding(.bottom, 24)
         .background(Color.canvasBackground)
         .onAppear {
             isGoalFieldFocused = true
@@ -91,7 +28,124 @@ struct PreparationView: View {
         }
     }
     
+    private var titleSection: some View {
+        Text("Compose Your Intention")
+            .font(.momentumTitle)
+            .foregroundStyle(Color.textPrimary)
+            .frame(maxWidth: .infinity)
+            .padding(.bottom, 24)
+    }
+    
+    private var intentionInput: some View {
+        TextField("What will you accomplish?", text: Binding(
+            get: { store.goal },
+            set: { store.send(.goalChanged($0)) }
+        ))
+        .textFieldStyle(.intention)
+        .focused($isGoalFieldFocused)
+        .onSubmit {
+            if store.isStartButtonEnabled {
+                startSession()
+            }
+        }
+    }
+    
+    private var durationPicker: some View {
+        HStack(spacing: 8) {
+            Text("Estimated duration")
+                .font(.system(size: 14))
+                .foregroundStyle(Color.textPrimary)
+            
+            TextField("30", text: Binding(
+                get: { store.timeInput },
+                set: { store.send(.timeInputChanged($0)) }
+            ))
+            .frame(width: 60)
+            .multilineTextAlignment(.center)
+            .font(.system(size: 15, weight: .medium))
+            .textFieldStyle(DurationTextFieldStyle())
+            .onSubmit {
+                if store.isStartButtonEnabled {
+                    startSession()
+                }
+            }
+            
+            Text("min")
+                .font(.system(size: 14))
+                .foregroundStyle(Color.textPrimary)
+        }
+    }
+    
+    @ViewBuilder
+    private var checklistSection: some View {
+        if !store.visibleChecklist.isEmpty {
+            VStack(alignment: .leading, spacing: 12) {
+                Text("GROUNDING RITUAL")
+                    .font(.sectionLabel)
+                    .foregroundStyle(Color.textSecondary)
+                    .tracking(2)
+                
+                // Fixed height container for 4 items
+                VStack(spacing: 4) {
+                    ForEach(store.visibleChecklist) { item in
+                        checklistRow(for: item)
+                    }
+                }
+                .frame(height: 156) // Fixed height for 4 items
+            }
+        }
+    }
+    
+    private func checklistRow(for item: ChecklistItem) -> some View {
+        let isTransitioning = store.itemTransitions[item.id] != nil
+        let isFadingIn = store.itemTransitions.values.contains { transition in
+            transition.replacementText == item.text
+        }
+        
+        return ChecklistRowView(
+            item: item,
+            isTransitioning: isTransitioning,
+            isFadingIn: isFadingIn,
+            onToggle: {
+                store.send(.checklistItemToggled(item.id))
+            }
+        )
+    }
+    
+    private var buttonAndProgress: some View {
+        VStack(spacing: 8) {
+            Button("Enter Sanctuary") {
+                startSession()
+            }
+            .buttonStyle(SanctuaryButtonStyle())
+            .disabled(!store.isStartButtonEnabled)
+            .keyboardShortcut(.return, modifiers: .command)
+            
+            // Progress indicator
+            Text("\(store.totalItemsCompleted) of 10 completed")
+                .font(.system(size: 12))
+                .foregroundStyle(Color.textSecondary)
+                .opacity(store.totalItemsCompleted > 0 ? 1 : 0)
+        }
+        .padding(.top, 24)
+    }
+    
     private func startSession() {
         store.send(.startButtonTapped)
+    }
+}
+
+// Duration text field style
+struct DurationTextFieldStyle: TextFieldStyle {
+    func _body(configuration: TextField<Self._Label>) -> some View {
+        configuration
+            .padding(.horizontal, 8)
+            .padding(.vertical, 4)
+            .background(Color(hex: "FDF9F1"))
+            .cornerRadius(3)
+            .overlay(
+                RoundedRectangle(cornerRadius: 3)
+                    .stroke(Color.borderNeutral, lineWidth: 1)
+            )
     }
 }

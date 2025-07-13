@@ -44,13 +44,14 @@ import ComposableArchitecture
             initialState: PreparationFeature.State(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                checklist: [
-                    ChecklistItem(id: "1", text: "Close all distracting browser tabs", isCompleted: false),
-                    ChecklistItem(id: "2", text: "Put phone in another room", isCompleted: false),
-                    ChecklistItem(id: "3", text: "Clear desk of unnecessary items", isCompleted: false)
+                visibleChecklist: [
+                    ChecklistItem(id: "0", text: "Rested", isCompleted: false),
+                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: false),
+                    ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
+                    ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
                 ],
-                completedChecklistItemCount: 0,
-                totalChecklistItemCount: 3
+                totalItemsCompleted: 0,
+                nextItemIndex: 4
             )
         ) {
             PreparationFeature()
@@ -65,13 +66,14 @@ import ComposableArchitecture
             initialState: PreparationFeature.State(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                checklist: [
-                    ChecklistItem(id: "1", text: "Close all distracting browser tabs", isCompleted: true),
-                    ChecklistItem(id: "2", text: "Put phone in another room", isCompleted: true),
-                    ChecklistItem(id: "3", text: "Clear desk of unnecessary items", isCompleted: false)
+                visibleChecklist: [
+                    ChecklistItem(id: "0", text: "Rested", isCompleted: true),
+                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: true),
+                    ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
+                    ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
                 ],
-                completedChecklistItemCount: 2,
-                totalChecklistItemCount: 3
+                totalItemsCompleted: 2,
+                nextItemIndex: 4
             )
         ) {
             PreparationFeature()
@@ -86,13 +88,14 @@ import ComposableArchitecture
             initialState: PreparationFeature.State(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                checklist: [
-                    ChecklistItem(id: "1", text: "Close all distracting browser tabs", isCompleted: true),
-                    ChecklistItem(id: "2", text: "Put phone in another room", isCompleted: true),
-                    ChecklistItem(id: "3", text: "Clear desk of unnecessary items", isCompleted: true)
+                visibleChecklist: [
+                    ChecklistItem(id: "0", text: "Rested", isCompleted: true),
+                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: true),
+                    ChecklistItem(id: "6", text: "Distractions closed", isCompleted: true),
+                    ChecklistItem(id: "9", text: "Mind centered", isCompleted: true)
                 ],
-                completedChecklistItemCount: 3,
-                totalChecklistItemCount: 3
+                totalItemsCompleted: 10,
+                nextItemIndex: 10
             )
         ) {
             PreparationFeature()
@@ -107,13 +110,14 @@ import ComposableArchitecture
             initialState: PreparationFeature.State(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "0",
-                checklist: [
-                    ChecklistItem(id: "1", text: "Close all distracting browser tabs", isCompleted: true),
-                    ChecklistItem(id: "2", text: "Put phone in another room", isCompleted: true),
-                    ChecklistItem(id: "3", text: "Clear desk of unnecessary items", isCompleted: true)
+                visibleChecklist: [
+                    ChecklistItem(id: "0", text: "Rested", isCompleted: true),
+                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: true),
+                    ChecklistItem(id: "2", text: "Bathroom break", isCompleted: true),
+                    ChecklistItem(id: "3", text: "Phone on silent", isCompleted: true)
                 ],
-                completedChecklistItemCount: 3,
-                totalChecklistItemCount: 3
+                totalItemsCompleted: 10,
+                nextItemIndex: 10
             )
         ) {
             PreparationFeature()
