@@ -50,7 +50,7 @@ extension ChecklistClient: DependencyKey {
             let appSupportURL = FileManager.default.urls(
                 for: .applicationSupportDirectory,
                 in: .userDomainMask
-            ).first!.appendingPathComponent("Momentum")
+            ).first!.appendingPathComponent("com.momentum.app")
             
             try? FileManager.default.createDirectory(
                 at: appSupportURL,

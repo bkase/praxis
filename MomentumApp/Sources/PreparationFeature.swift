@@ -1,13 +1,19 @@
 import ComposableArchitecture
 import Foundation
+import Sharing
 
 @Reducer
 struct PreparationFeature {
-    struct ChecklistSlot: Equatable, Identifiable {
+    struct ChecklistSlot: Equatable, Identifiable, Codable {
         let id: Int // Position 0-3
         var item: ChecklistItem?
         var isTransitioning: Bool = false
         var isFadingIn: Bool = false
+        
+        private enum CodingKeys: String, CodingKey {
+            case id, item
+            // Don't persist animation states
+        }
     }
     
     struct ItemTransition: Equatable {
@@ -20,10 +26,24 @@ struct PreparationFeature {
     struct State: Equatable {
         var goal: String = ""
         var timeInput: String = ""
-        var checklistSlots: [ChecklistSlot] = []
-        var totalItemsCompleted: Int = 0
-        var nextItemIndex: Int = 4
+        @Shared(.preparationState) var persistentState = PreparationPersistentState.initial
         var activeTransitions: [Int: ItemTransition] = [:] // Key is slot ID
+        
+        // Computed properties for accessing persistent state
+        var checklistSlots: [ChecklistSlot] {
+            get { persistentState.checklistSlots }
+            set { $persistentState.withLock { $0.checklistSlots = newValue } }
+        }
+        
+        var totalItemsCompleted: Int {
+            get { persistentState.totalItemsCompleted }
+            set { $persistentState.withLock { $0.totalItemsCompleted = newValue } }
+        }
+        
+        var nextItemIndex: Int {
+            get { persistentState.nextItemIndex }
+            set { $persistentState.withLock { $0.nextItemIndex = newValue } }
+        }
         
         var isStartButtonEnabled: Bool {
             !goal.isEmpty &&
@@ -33,27 +53,26 @@ struct PreparationFeature {
         
         init(
             goal: String = "",
-            timeInput: String = "",
-            checklistSlots: [ChecklistSlot] = [],
-            totalItemsCompleted: Int = 0,
-            nextItemIndex: Int = 4
+            timeInput: String = ""
         ) {
             self.goal = goal
             self.timeInput = timeInput
-            self.checklistSlots = checklistSlots.isEmpty ? Self.createInitialSlots() : checklistSlots
-            self.totalItemsCompleted = totalItemsCompleted
-            self.nextItemIndex = nextItemIndex
+            // Check if we need to initialize the persistent state
+            if self.checklistSlots.isEmpty {
+                self.checklistSlots = Self.createInitialSlots()
+            }
         }
         
         init(preparationState: PreparationState) {
             self.goal = preparationState.goal
             self.timeInput = preparationState.timeInput
             // Convert old checklist to slots
-            self.checklistSlots = Self.createInitialSlots()
+            var slots = Self.createInitialSlots()
             let items = preparationState.checklist.prefix(4)
             for (index, item) in items.enumerated() {
-                self.checklistSlots[index].item = item
+                slots[index].item = item
             }
+            self.checklistSlots = slots
             self.totalItemsCompleted = preparationState.checklist.filter { $0.isCompleted }.count
             self.nextItemIndex = min(4, preparationState.checklist.count)
         }
@@ -91,13 +110,20 @@ struct PreparationFeature {
             switch action {
                 
             case .onAppear:
-                // Initialize slots with first 4 items from the pool
-                state.checklistSlots = State.createInitialSlots()
-                let initialItems = ChecklistItemPool.allItems.prefix(4).enumerated().map { index, text in
-                    ChecklistItem(id: "\(index)", text: text, isCompleted: false)
-                }
-                for (index, item) in initialItems.enumerated() {
-                    state.checklistSlots[index].item = item
+                // Only initialize if we haven't already (persistent state is empty)
+                if state.checklistSlots.isEmpty || state.checklistSlots.allSatisfy({ $0.item == nil }) {
+                    // Initialize slots with first 4 items from the pool
+                    state.checklistSlots = State.createInitialSlots()
+                    let initialItems = ChecklistItemPool.allItems.prefix(4).enumerated().map { index, text in
+                        ChecklistItem(id: "\(index)", text: text, isCompleted: false)
+                    }
+                    var slots = state.checklistSlots
+                    for (index, item) in initialItems.enumerated() {
+                        slots[index].item = item
+                    }
+                    state.checklistSlots = slots
+                    state.nextItemIndex = 4
+                    state.totalItemsCompleted = 0
                 }
                 return .none
                 
@@ -107,7 +133,9 @@ struct PreparationFeature {
                 
                 if !item.isCompleted {
                     // Mark item as completed
-                    state.checklistSlots[slotId].item?.isCompleted = true
+                    var slots = state.checklistSlots
+                    slots[slotId].item?.isCompleted = true
+                    state.checklistSlots = slots
                     state.totalItemsCompleted += 1
                     
                     // Check if we have more items to show
@@ -126,14 +154,18 @@ struct PreparationFeature {
                     }
                 } else {
                     // Unchecking an item (not in spec, but handling for completeness)
-                    state.checklistSlots[slotId].item?.isCompleted = false
+                    var slots = state.checklistSlots
+                    slots[slotId].item?.isCompleted = false
+                    state.checklistSlots = slots
                     state.totalItemsCompleted -= 1
                 }
                 return .none
                 
             case let .beginSlotTransition(slotId, replacementText):
                 // Mark slot as transitioning
-                state.checklistSlots[slotId].isTransitioning = true
+                var slots = state.checklistSlots
+                slots[slotId].isTransitioning = true
+                state.checklistSlots = slots
                 state.activeTransitions[slotId] = ItemTransition(
                     slotId: slotId,
                     replacementText: replacementText,
@@ -150,9 +182,11 @@ struct PreparationFeature {
                 guard let transition = state.activeTransitions[slotId] else { return .none }
                 
                 // First, clear the slot completely to prevent overlap
-                state.checklistSlots[slotId].item = nil
-                state.checklistSlots[slotId].isTransitioning = false
-                state.checklistSlots[slotId].isFadingIn = false
+                var slots = state.checklistSlots
+                slots[slotId].item = nil
+                slots[slotId].isTransitioning = false
+                slots[slotId].isFadingIn = false
+                state.checklistSlots = slots
                 
                 state.activeTransitions.removeValue(forKey: slotId)
                 
@@ -170,8 +204,10 @@ struct PreparationFeature {
                 // Add the new item to the slot with fade-in animation
                 let newId = UUID().uuidString
                 let newItem = ChecklistItem(id: newId, text: text, isCompleted: false)
-                state.checklistSlots[slotId].item = newItem
-                state.checklistSlots[slotId].isFadingIn = true
+                var slots = state.checklistSlots
+                slots[slotId].item = newItem
+                slots[slotId].isFadingIn = true
+                state.checklistSlots = slots
                 
                 // Reset the fade-in flag after animation duration
                 return .run { send in
@@ -181,7 +217,9 @@ struct PreparationFeature {
                 
             case let .resetFadeInFlag(slotId):
                 // Reset the fade-in flag so the item becomes fully interactive
-                state.checklistSlots[slotId].isFadingIn = false
+                var slots = state.checklistSlots
+                slots[slotId].isFadingIn = false
+                state.checklistSlots = slots
                 return .none
                 
             case let .goalChanged(newGoal):

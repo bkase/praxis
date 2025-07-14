@@ -1,6 +1,7 @@
 import Testing
 import Foundation
 import ComposableArchitecture
+import Sharing
 @testable import MomentumApp
 
 @Suite("Checklist Tests")
@@ -12,11 +13,13 @@ struct ChecklistTests {
         @Shared(.lastGoal) var lastGoal: String
         @Shared(.lastTimeMinutes) var lastTimeMinutes: String
         @Shared(.analysisHistory) var analysisHistory: [AnalysisResult]
+        @Shared(.preparationState) var preparationState: PreparationPersistentState
         
         $sessionData.withLock { $0 = nil }
         $lastGoal.withLock { $0 = "" }
         $lastTimeMinutes.withLock { $0 = "30" }
         $analysisHistory.withLock { $0 = [] }
+        $preparationState.withLock { $0 = .initial }
     }
     
     @Test("Checklist Loading - Loads First 4 Items")
@@ -163,18 +166,22 @@ struct ChecklistTests {
     
     @Test("Goal and Time Input Updates")
     func goalAndTimeInputUpdates() async {
-        let store = TestStore(initialState: PreparationFeature.State()) {
+        // Create initial state and capture what the slots look like after init
+        let initialState = PreparationFeature.State()
+        let store = TestStore(initialState: initialState) {
             PreparationFeature()
         }
         
         // Test goal update
         await store.send(.goalChanged("New Goal")) {
             $0.goal = "New Goal"
+            // checklistSlots remain unchanged from init
         }
         
         // Test time input update
         await store.send(.timeInputChanged("45")) {
             $0.timeInput = "45"
+            // checklistSlots remain unchanged from init
         }
     }
 }

@@ -1,5 +1,37 @@
 import SwiftUI
 import ComposableArchitecture
+import Sharing
+
+// Helper to create states with specific checklist configurations for previews
+extension PreparationFeature.State {
+    static func preview(
+        goal: String = "",
+        timeInput: String = "",
+        checklistItems: [(text: String, isCompleted: Bool)] = [],
+        totalItemsCompleted: Int? = nil,
+        nextItemIndex: Int? = nil
+    ) -> Self {
+        @Shared(.preparationState) var sharedState = PreparationPersistentState.initial
+        
+        // Reset and configure the shared state for preview
+        $sharedState.withLock { state in
+            state.checklistSlots = (0..<4).map { PreparationFeature.ChecklistSlot(id: $0) }
+            
+            for (index, item) in checklistItems.prefix(4).enumerated() {
+                state.checklistSlots[index].item = ChecklistItem(
+                    id: "\(index)",
+                    text: item.text,
+                    isCompleted: item.isCompleted
+                )
+            }
+            
+            state.totalItemsCompleted = totalItemsCompleted ?? checklistItems.filter { $0.isCompleted }.count
+            state.nextItemIndex = nextItemIndex ?? max(4, checklistItems.count)
+        }
+        
+        return Self(goal: goal, timeInput: timeInput)
+    }
+}
 
 #Preview("Empty State") {
     PreparationView(
@@ -41,17 +73,15 @@ import ComposableArchitecture
 #Preview("With Checklist - Incomplete") {
     PreparationView(
         store: Store(
-            initialState: PreparationFeature.State(
+            initialState: PreparationFeature.State.preview(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                checklistSlots: [
-                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: false)),
-                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: false)),
-                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false)),
-                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false))
-                ],
-                totalItemsCompleted: 0,
-                nextItemIndex: 4
+                checklistItems: [
+                    ("Rested", false),
+                    ("Not hungry", false),
+                    ("Bathroom break", false),
+                    ("Phone on silent", false)
+                ]
             )
         ) {
             PreparationFeature()
@@ -63,17 +93,15 @@ import ComposableArchitecture
 #Preview("With Checklist - Partially Complete") {
     PreparationView(
         store: Store(
-            initialState: PreparationFeature.State(
+            initialState: PreparationFeature.State.preview(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                checklistSlots: [
-                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: true)),
-                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: true)),
-                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false)),
-                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false))
-                ],
-                totalItemsCompleted: 2,
-                nextItemIndex: 4
+                checklistItems: [
+                    ("Rested", true),
+                    ("Not hungry", true),
+                    ("Bathroom break", false),
+                    ("Phone on silent", false)
+                ]
             )
         ) {
             PreparationFeature()
@@ -85,14 +113,14 @@ import ComposableArchitecture
 #Preview("Ready to Start") {
     PreparationView(
         store: Store(
-            initialState: PreparationFeature.State(
+            initialState: PreparationFeature.State.preview(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                checklistSlots: [
-                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: true)),
-                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: true)),
-                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "6", text: "Distractions closed", isCompleted: true)),
-                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "9", text: "Mind centered", isCompleted: true))
+                checklistItems: [
+                    ("Rested", true),
+                    ("Not hungry", true),
+                    ("Distractions closed", true),
+                    ("Mind centered", true)
                 ],
                 totalItemsCompleted: 10,
                 nextItemIndex: 10
@@ -107,14 +135,14 @@ import ComposableArchitecture
 #Preview("Invalid Time Input") {
     PreparationView(
         store: Store(
-            initialState: PreparationFeature.State(
+            initialState: PreparationFeature.State.preview(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "0",
-                checklistSlots: [
-                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: true)),
-                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: true)),
-                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: true)),
-                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: true))
+                checklistItems: [
+                    ("Rested", true),
+                    ("Not hungry", true),
+                    ("Bathroom break", true),
+                    ("Phone on silent", true)
                 ],
                 totalItemsCompleted: 10,
                 nextItemIndex: 10
