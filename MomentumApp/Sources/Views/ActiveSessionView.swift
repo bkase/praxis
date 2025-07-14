@@ -16,6 +16,7 @@ struct ActiveSessionView: View {
     }
     
     private var progress: Double {
+        // expectedMinutes is already in minutes, so convert to seconds for comparison with elapsedTime
         min(elapsedTime / (Double(store.expectedMinutes) * 60), 1.0)
     }
     

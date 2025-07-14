@@ -56,7 +56,7 @@ extension RustCoreClient: DependencyKey {
             SessionData(
                 goal: goal,
                 startTime: 1_700_000_000,
-                timeExpected: UInt64(minutes * 60),
+                timeExpected: UInt64(minutes),  // Rust expects minutes, not seconds
                 reflectionFilePath: nil
             )
         },

@@ -49,7 +49,7 @@ extension SessionData {
     static func mock(
         goal: String = "Test Goal",
         startTime: Date = Date(timeIntervalSince1970: 1_700_000_000),
-        timeExpected: UInt64 = 1800,
+        timeExpected: UInt64 = 30,  // Default to 30 minutes
         reflectionFilePath: String? = nil
     ) -> Self {
         SessionData(

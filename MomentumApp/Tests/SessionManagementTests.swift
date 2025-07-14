@@ -36,7 +36,7 @@ struct SessionManagementTests {
                 SessionData.mock(
                     goal: goal,
                     startTime: Date(timeIntervalSince1970: 1_700_000_000),
-                    timeExpected: UInt64(minutes * 60)
+                    timeExpected: UInt64(minutes)  // timeExpected is in minutes
                 )
             }
             $0.checklistClient.load = { ChecklistItem.mockItems }
@@ -70,7 +70,7 @@ struct SessionManagementTests {
         let sessionData = SessionData.mock(
             goal: "Test Goal",
             startTime: Date(timeIntervalSince1970: 1_700_000_000),
-            timeExpected: 1800
+            timeExpected: 30  // 30 minutes
         )
         await store.receive(.rustCoreResponse(.success(.sessionStarted(sessionData)))) {
             $0.isLoading = false
@@ -90,7 +90,7 @@ struct SessionManagementTests {
         let sessionData = SessionData.mock(
             goal: "Test Goal",
             startTime: startTime,
-            timeExpected: 1800
+            timeExpected: 30  // 30 minutes
         )
         
         // Set up shared state before creating the store

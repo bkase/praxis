@@ -38,7 +38,7 @@ struct FullFlowTests {
                 SessionData(
                     goal: goal,
                     startTime: fixedTime,
-                    timeExpected: UInt64(minutes * 60),
+                    timeExpected: UInt64(minutes),  // timeExpected is in minutes
                     reflectionFilePath: nil
                 )
             }
@@ -84,7 +84,7 @@ struct FullFlowTests {
         await store.receive(.rustCoreResponse(.success(.sessionStarted(SessionData(
             goal: "Full Flow Test",
             startTime: fixedTime,
-            timeExpected: 1200,  // 20 minutes in seconds
+            timeExpected: 20,  // 20 minutes
             reflectionFilePath: nil
         ))))) {
             $0.isLoading = false
