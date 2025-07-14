@@ -78,7 +78,7 @@ struct PreparationView: View {
     
     @ViewBuilder
     private var checklistSection: some View {
-        if !store.visibleChecklist.isEmpty {
+        if !store.checklistSlots.isEmpty {
             VStack(alignment: .leading, spacing: 12) {
                 Text("GROUNDING RITUAL")
                     .font(.sectionLabel)
@@ -87,8 +87,8 @@ struct PreparationView: View {
                 
                 // Fixed height container for 4 items
                 VStack(spacing: 4) {
-                    ForEach(store.visibleChecklist) { item in
-                        checklistRow(for: item)
+                    ForEach(store.checklistSlots) { slot in
+                        checklistSlotView(for: slot)
                     }
                 }
                 .frame(height: 156) // Fixed height for 4 items
@@ -96,20 +96,25 @@ struct PreparationView: View {
         }
     }
     
-    private func checklistRow(for item: ChecklistItem) -> some View {
-        let isTransitioning = store.itemTransitions[item.id] != nil
-        let isFadingIn = store.itemTransitions.values.contains { transition in
-            transition.replacementText == item.text
-        }
-        
-        return ChecklistRowView(
-            item: item,
-            isTransitioning: isTransitioning,
-            isFadingIn: isFadingIn,
-            onToggle: {
-                store.send(.checklistItemToggled(item.id))
+    @ViewBuilder
+    private func checklistSlotView(for slot: PreparationFeature.ChecklistSlot) -> some View {
+        Group {
+            if let item = slot.item {
+                ChecklistRowView(
+                    item: item,
+                    isTransitioning: slot.isTransitioning,
+                    isFadingIn: slot.isFadingIn,
+                    onToggle: {
+                        store.send(.checklistSlotToggled(slotId: slot.id))
+                    }
+                )
+                .id(item.id) // Force view recreation when item changes
+            } else {
+                // Empty slot maintains the space
+                Color.clear
+                    .frame(height: 36) // Height of a checklist row
             }
-        )
+        }
     }
     
     private var buttonAndProgress: some View {

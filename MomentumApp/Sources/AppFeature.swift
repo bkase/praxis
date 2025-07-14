@@ -105,9 +105,7 @@ struct AppFeature {
                 }
                 return .none
                 
-            case .destination(.presented(.preparation(.checklistItemsLoaded(.failure(let error))))):
-                state.alert = .error(error)
-                return .none
+            // Removed checklistItemsLoaded case as it's no longer used
                 
             case .destination(.presented(.preparation(.goalChanged(let goal)))):
                 // Save goal to shared state

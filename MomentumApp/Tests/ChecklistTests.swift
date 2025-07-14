@@ -27,11 +27,11 @@ struct ChecklistTests {
         
         // Load checklist on appear - should load first 4 items
         await store.send(.onAppear) {
-            $0.visibleChecklist = [
-                ChecklistItem(id: "0", text: "Rested", isCompleted: false),
-                ChecklistItem(id: "1", text: "Not hungry", isCompleted: false),
-                ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
-                ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
+            $0.checklistSlots = [
+                PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: false)),
+                PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: false)),
+                PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false)),
+                PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false))
             ]
             $0.nextItemIndex = 4
         }
@@ -59,15 +59,14 @@ struct ChecklistTests {
         // Load initial checklist
         await store.send(.onAppear)
         
-        let initialCount = store.state.visibleChecklist.count
+        let initialCount = store.state.checklistSlots.count
         #expect(initialCount == 4)
         
-        // Toggle first item
-        let firstItemId = store.state.visibleChecklist.first?.id ?? ""
-        await store.send(.checklistItemToggled(firstItemId))
+        // Toggle first slot's item
+        await store.send(.checklistSlotToggled(slotId: 0))
         
-        // Wait for transitions to complete
-        await clock.advance(by: .seconds(1))
+        // Wait for transitions to complete (600ms + 300ms + 100ms + 350ms)
+        await clock.advance(by: .milliseconds(1350))
         
         // Verify item was marked completed
         #expect(store.state.totalItemsCompleted == 1)
@@ -129,26 +128,30 @@ struct ChecklistTests {
         
         // Load initial items
         await store.send(.onAppear) {
-            $0.visibleChecklist = [
-                ChecklistItem(id: "0", text: "Rested", isCompleted: false),
-                ChecklistItem(id: "1", text: "Not hungry", isCompleted: false),
-                ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
-                ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
+            $0.checklistSlots = [
+                PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: false)),
+                PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: false)),
+                PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false)),
+                PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false))
             ]
             $0.nextItemIndex = 4
         }
         
-        // Complete all 10 items by toggling visible ones
+        // Complete all 10 items by toggling slots
         for i in 0..<10 {
-            if let firstIncomplete = store.state.visibleChecklist.first(where: { !$0.isCompleted }) {
-                await store.send(.checklistItemToggled(firstIncomplete.id)) {
-                    $0.visibleChecklist[id: firstIncomplete.id]?.isCompleted = true
+            // Find first slot with incomplete item
+            if let slotIndex = store.state.checklistSlots.firstIndex(where: { slot in
+                slot.item != nil && !slot.item!.isCompleted
+            }) {
+                await store.send(.checklistSlotToggled(slotId: slotIndex)) {
+                    $0.checklistSlots[slotIndex].item?.isCompleted = true
                     $0.totalItemsCompleted = i + 1
                 }
                 
                 // If we still have items to show, handle the transition
                 if i < 6 { // First 6 toggles will trigger replacements
-                    await clock.advance(by: .milliseconds(950)) // Total transition time
+                    // 600ms delay + 300ms fade-out + 100ms gap + 350ms for fade-in reset
+                    await clock.advance(by: .milliseconds(1350))
                 }
             }
         }

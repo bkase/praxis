@@ -63,13 +63,12 @@ struct FullFlowTests {
         await store.send(.destination(.presented(.preparation(.onAppear)))) {
             if case .preparation(var preparationState) = $0.destination {
                 // onAppear now directly creates the first 4 items from ChecklistItemPool
-                let initialItems = [
-                    ChecklistItem(id: "0", text: "Rested", isCompleted: false),
-                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: false),
-                    ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
-                    ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
+                preparationState.checklistSlots = [
+                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: false)),
+                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: false)),
+                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false)),
+                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false))
                 ]
-                preparationState.visibleChecklist = IdentifiedArray(uniqueElements: initialItems)
                 $0.destination = .preparation(preparationState)
             }
         }

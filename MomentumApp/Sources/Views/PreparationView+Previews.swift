@@ -44,11 +44,11 @@ import ComposableArchitecture
             initialState: PreparationFeature.State(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                visibleChecklist: [
-                    ChecklistItem(id: "0", text: "Rested", isCompleted: false),
-                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: false),
-                    ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
-                    ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
+                checklistSlots: [
+                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: false)),
+                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: false)),
+                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false)),
+                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false))
                 ],
                 totalItemsCompleted: 0,
                 nextItemIndex: 4
@@ -66,11 +66,11 @@ import ComposableArchitecture
             initialState: PreparationFeature.State(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                visibleChecklist: [
-                    ChecklistItem(id: "0", text: "Rested", isCompleted: true),
-                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: true),
-                    ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false),
-                    ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false)
+                checklistSlots: [
+                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: true)),
+                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: true)),
+                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: false)),
+                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: false))
                 ],
                 totalItemsCompleted: 2,
                 nextItemIndex: 4
@@ -88,11 +88,11 @@ import ComposableArchitecture
             initialState: PreparationFeature.State(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "45",
-                visibleChecklist: [
-                    ChecklistItem(id: "0", text: "Rested", isCompleted: true),
-                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: true),
-                    ChecklistItem(id: "6", text: "Distractions closed", isCompleted: true),
-                    ChecklistItem(id: "9", text: "Mind centered", isCompleted: true)
+                checklistSlots: [
+                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: true)),
+                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: true)),
+                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "6", text: "Distractions closed", isCompleted: true)),
+                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "9", text: "Mind centered", isCompleted: true))
                 ],
                 totalItemsCompleted: 10,
                 nextItemIndex: 10
@@ -110,11 +110,11 @@ import ComposableArchitecture
             initialState: PreparationFeature.State(
                 goal: "Write a comprehensive report on Q4 performance",
                 timeInput: "0",
-                visibleChecklist: [
-                    ChecklistItem(id: "0", text: "Rested", isCompleted: true),
-                    ChecklistItem(id: "1", text: "Not hungry", isCompleted: true),
-                    ChecklistItem(id: "2", text: "Bathroom break", isCompleted: true),
-                    ChecklistItem(id: "3", text: "Phone on silent", isCompleted: true)
+                checklistSlots: [
+                    PreparationFeature.ChecklistSlot(id: 0, item: ChecklistItem(id: "0", text: "Rested", isCompleted: true)),
+                    PreparationFeature.ChecklistSlot(id: 1, item: ChecklistItem(id: "1", text: "Not hungry", isCompleted: true)),
+                    PreparationFeature.ChecklistSlot(id: 2, item: ChecklistItem(id: "2", text: "Bathroom break", isCompleted: true)),
+                    PreparationFeature.ChecklistSlot(id: 3, item: ChecklistItem(id: "3", text: "Phone on silent", isCompleted: true))
                 ],
                 totalItemsCompleted: 10,
                 nextItemIndex: 10

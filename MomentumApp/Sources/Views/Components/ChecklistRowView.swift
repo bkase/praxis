@@ -35,9 +35,11 @@ struct ChecklistRowView: View {
         )
         .opacity(opacity)
         .offset(x: offsetX)
-        .allowsHitTesting(!isTransitioning) // Disable clicks during transition
+        .animation(.easeOut(duration: 0.3), value: isTransitioning)
+        .animation(.easeOut(duration: 0.3), value: hasAppeared)
+        .allowsHitTesting(!isTransitioning && (!isFadingIn || hasAppeared)) // Enable clicks after fade-in completes
         .onHover { isHovered in
-            if isHovered && !isTransitioning {
+            if isHovered && !isTransitioning && (!isFadingIn || hasAppeared) {
                 NSCursor.pointingHand.push()
             } else {
                 NSCursor.pop()
@@ -45,8 +47,11 @@ struct ChecklistRowView: View {
         }
         .onAppear {
             if isFadingIn {
-                withAnimation(.easeOut(duration: 0.3).delay(0.05)) {
-                    hasAppeared = true
+                // Slight delay to ensure the view is ready before animating
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.01) {
+                    withAnimation(.easeOut(duration: 0.3)) {
+                        hasAppeared = true
+                    }
                 }
             } else {
                 hasAppeared = true
