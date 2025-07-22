@@ -1,0 +1,23 @@
+# Build artifacts
+/target/
+/Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.orig
+*.rej
+*.bak
+
+# Aethel vault files (for testing)
+/test-vault/
+/.aethel/
