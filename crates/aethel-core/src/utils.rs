@@ -1,5 +1,5 @@
 //! Utility types and functions
-//! 
+//!
 //! Common utilities used across the aethel-core crate.
 
 use serde::{Deserialize, Serialize};
@@ -27,6 +27,5 @@ pub fn format_timestamp(dt: &chrono::DateTime<chrono::Utc>) -> String {
 
 /// Parse an ISO 8601 timestamp
 pub fn parse_timestamp(s: &str) -> Result<chrono::DateTime<chrono::Utc>, chrono::ParseError> {
-    chrono::DateTime::parse_from_rfc3339(s)
-        .map(|dt| dt.with_timezone(&chrono::Utc))
+    chrono::DateTime::parse_from_rfc3339(s).map(|dt| dt.with_timezone(&chrono::Utc))
 }

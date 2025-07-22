@@ -1,5 +1,5 @@
 //! Patch structure and application logic
-//! 
+//!
 //! A Patch describes a mutation to a Doc, supporting various
 //! modes: create, append, merge_frontmatter, and replace_body.
 
@@ -48,7 +48,7 @@ impl Patch {
                 // Create mode requires uuid to be null
                 if self.uuid.is_some() {
                     return Err(AethelCoreError::Other(
-                        "UUID must be null for create mode".to_string()
+                        "UUID must be null for create mode".to_string(),
                     ));
                 }
             }
@@ -65,26 +65,26 @@ impl Patch {
                 // Other modes have no specific requirements
             }
         }
-        
+
         // Check for system keys in frontmatter
         if let Some(Value::Object(map)) = &self.frontmatter {
             for key in map.keys() {
                 if SYSTEM_KEYS.contains(&key.as_str()) {
-                    return Err(AethelCoreError::AttemptToSetSystemKey {
-                        key: key.clone(),
-                    });
+                    return Err(AethelCoreError::AttemptToSetSystemKey { key: key.clone() });
                 }
             }
         }
-        
+
         Ok(())
     }
-    
+
     /// Check if this patch would result in any changes to the given doc
     pub fn would_change(&self, current_frontmatter: &Value, current_body: &str) -> bool {
         // Check frontmatter changes
         if let Some(patch_fm) = &self.frontmatter {
-            if let (Value::Object(patch_map), Value::Object(current_map)) = (patch_fm, current_frontmatter) {
+            if let (Value::Object(patch_map), Value::Object(current_map)) =
+                (patch_fm, current_frontmatter)
+            {
                 for (key, value) in patch_map {
                     if current_map.get(key) != Some(value) {
                         return true;
@@ -92,7 +92,7 @@ impl Patch {
                 }
             }
         }
-        
+
         // Check body changes
         match self.mode {
             PatchMode::Append => {
@@ -111,10 +111,10 @@ impl Patch {
             }
             _ => {}
         }
-        
+
         false
     }
-    
+
     /// Apply frontmatter changes to existing frontmatter
     pub fn apply_frontmatter(&self, current: &mut Value) -> Result<(), AethelCoreError> {
         if let Some(patch_fm) = &self.frontmatter {
@@ -130,7 +130,7 @@ impl Patch {
         }
         Ok(())
     }
-    
+
     /// Apply body changes according to mode
     pub fn apply_body(&self, current_body: &mut String) {
         match self.mode {
@@ -160,7 +160,7 @@ impl Patch {
 mod tests {
     use super::*;
     use serde_json::json;
-    
+
     #[test]
     fn test_patch_validation() {
         // Valid create patch
@@ -172,7 +172,7 @@ mod tests {
             mode: PatchMode::Create,
         };
         assert!(patch.validate().is_ok());
-        
+
         // Invalid create patch (missing type)
         let patch = Patch {
             uuid: None,
@@ -185,7 +185,7 @@ mod tests {
             patch.validate(),
             Err(AethelCoreError::MissingRequiredField { .. })
         ));
-        
+
         // Invalid patch (system key)
         let patch = Patch {
             uuid: Some(Uuid::new_v4()),
@@ -199,12 +199,12 @@ mod tests {
             Err(AethelCoreError::AttemptToSetSystemKey { .. })
         ));
     }
-    
+
     #[test]
     fn test_would_change() {
         let current_fm = json!({"mood": "happy", "weather": "sunny"});
         let current_body = "Original content";
-        
+
         // No change
         let patch = Patch {
             uuid: Some(Uuid::new_v4()),
@@ -214,7 +214,7 @@ mod tests {
             mode: PatchMode::MergeFrontmatter,
         };
         assert!(!patch.would_change(&current_fm, current_body));
-        
+
         // Frontmatter change
         let patch = Patch {
             uuid: Some(Uuid::new_v4()),
@@ -224,7 +224,7 @@ mod tests {
             mode: PatchMode::MergeFrontmatter,
         };
         assert!(patch.would_change(&current_fm, current_body));
-        
+
         // Body append
         let patch = Patch {
             uuid: Some(Uuid::new_v4()),

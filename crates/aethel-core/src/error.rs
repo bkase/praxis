@@ -1,12 +1,12 @@
 //! Error types for aethel-core
-//! 
+//!
 //! All fallible operations in aethel-core return Result<T, AethelCoreError>.
 //! Each error variant maps to a protocol error code as defined in protocol.md.
 
-use thiserror::Error;
-use std::path::PathBuf;
-use uuid::Uuid;
 use semver::Version;
+use std::path::PathBuf;
+use thiserror::Error;
+use uuid::Uuid;
 
 #[derive(Error, Debug)]
 #[non_exhaustive] // Allow adding new error variants without breaking consumers
@@ -14,48 +14,51 @@ pub enum AethelCoreError {
     // 400xx: Bad Request / Malformed input
     #[error("Malformed request JSON: {0}")]
     MalformedRequestJson(#[source] serde_json::Error),
-    
+
     #[error("Unknown patch mode '{0}'")]
     UnknownPatchMode(String),
-    
+
     #[error("Attempted to set system-controlled key '{key}' in frontmatter.")]
     AttemptToSetSystemKey { key: String },
-    
+
     #[error("Missing required field '{field}' for patch mode '{mode}'")]
     MissingRequiredField { field: String, mode: String },
-    
+
     #[error("Invalid UUID format: {0}")]
     InvalidUuidFormat(#[source] uuid::Error),
-    
+
     #[error("Invalid SemVer format: {0}")]
     InvalidSemVerFormat(#[source] semver::Error),
-    
+
     #[error("Invalid ISO 8601 UTC timestamp format: {0}")]
     InvalidTimestampFormat(#[source] chrono::ParseError),
-    
+
     #[error("Malformed YAML frontmatter: {0}")]
     MalformedYaml(#[source] serde_yaml::Error),
-    
+
     #[error("Malformed Doc file: {0}")]
     MalformedDocFile(String), // e.g., missing '---' delimiters
 
     // 404xx: Not Found
     #[error("Doc with UUID '{0}' not found at '{1}'")]
     DocNotFound(Uuid, PathBuf),
-    
+
     #[error("Pack '{0}' not found at '{1}'")]
     PackNotFound(String, PathBuf),
-    
+
     #[error("Pack type '{0}' not found within pack '{1}'")]
     PackTypeNotFound(String, String),
-    
+
     #[error("Schema file '{0}' not found for pack type '{1}'")]
     SchemaFileNotFound(PathBuf, String),
 
     // 409xx: Conflict
     #[error("Type mismatch: Doc has type '{existing_type}', patch specified '{patch_type}'")]
-    TypeMismatchOnUpdate { existing_type: String, patch_type: String },
-    
+    TypeMismatchOnUpdate {
+        existing_type: String,
+        patch_type: String,
+    },
+
     #[error("Concurrent write conflict detected.")]
     ConcurrentWriteConflict, // Requires file locking mechanism
 
@@ -69,10 +72,10 @@ pub enum AethelCoreError {
         #[source]
         source: Option<Box<dyn std::error::Error + Send + Sync>>,
     },
-    
+
     #[error("Unknown frontmatter key '{key}' not allowed by schema for type '{doc_type}'")]
     UnknownFrontmatterKey { key: String, doc_type: String },
-    
+
     #[error("Pack '{pack_name}' protocol version '{pack_protocol_version}' is incompatible with current protocol version '{current_protocol_version}' (major version mismatch).")]
     ProtocolVersionMismatch {
         pack_name: String,
@@ -87,20 +90,20 @@ pub enum AethelCoreError {
         source: std::io::Error,
         path: PathBuf,
     },
-    
+
     #[error("Atomic file write failed for '{path}': {source}")]
     AtomicWriteFailed {
         #[source]
         source: Box<dyn std::error::Error + Send + Sync>, // Can be tempfile::PersistError, etc.
         path: PathBuf,
     },
-    
+
     #[error("Internal schema compilation error: {0}")]
     SchemaCompilationError(String),
-    
+
     #[error("Internal JSON processing error: {0}")]
     JsonProcessingError(#[source] serde_json::Error),
-    
+
     #[error("Internal lock file error: {0}")]
     LockFileError(String), // For .aethel/lock
 
@@ -153,6 +156,9 @@ impl AethelCoreError {
 
     /// Helper to construct Io error with path context
     pub fn io_error(err: std::io::Error, path: impl Into<PathBuf>) -> Self {
-        AethelCoreError::Io { source: err, path: path.into() }
+        AethelCoreError::Io {
+            source: err,
+            path: path.into(),
+        }
     }
 }

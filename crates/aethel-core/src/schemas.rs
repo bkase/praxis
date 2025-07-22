@@ -1,5 +1,5 @@
 //! Pre-compiled base JSON schemas
-//! 
+//!
 //! Contains the base schemas defined in the protocol specification
 //! for validation of Docs, Patches, and WriteResults.
 
@@ -40,7 +40,7 @@ pub static BASE_FRONTMATTER_SCHEMA: Lazy<Validator> = Lazy::new(|| {
         },
         "additionalProperties": false
     });
-    
+
     jsonschema::validator_for(&schema).expect("Failed to compile base frontmatter schema")
 });
 
@@ -72,7 +72,7 @@ pub static PATCH_SCHEMA: Lazy<Validator> = Lazy::new(|| {
             }
         ]
     });
-    
+
     jsonschema::validator_for(&schema).expect("Failed to compile patch schema")
 });
 
@@ -94,6 +94,6 @@ pub static WRITE_RESULT_SCHEMA: Lazy<Validator> = Lazy::new(|| {
         },
         "additionalProperties": false
     });
-    
+
     jsonschema::validator_for(&schema).expect("Failed to compile write result schema")
 });
