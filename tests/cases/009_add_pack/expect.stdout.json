@@ -1,0 +1,5 @@
+{
+  "code": 40402,
+  "data": null,
+  "message": "Error from core library: Pack '../../tests/cases/009_add_pack/pack-to-add' not found at '../../tests/cases/009_add_pack/pack-to-add'"
+}

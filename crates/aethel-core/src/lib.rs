@@ -8,6 +8,7 @@ pub mod error;
 pub mod pack;
 pub mod patch;
 pub mod schemas;
+pub mod test_mode;
 pub mod utils;
 pub mod validate;
 pub mod vault;

@@ -1,0 +1,13 @@
+{
+  "name": "journal",
+  "version": "0.1.0",
+  "protocolVersion": "0.1.0",
+  "types": [
+    {
+      "id": "journal.morning",
+      "version": "1.0.0",
+      "schema": "types/morning.schema.json",
+      "template": "templates/morning.md"
+    }
+  ]
+}

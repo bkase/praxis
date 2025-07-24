@@ -16,6 +16,18 @@ struct Cli {
     #[arg(long, global = true)]
     vault_root: Option<PathBuf>,
 
+    /// Override current timestamp (only with AETHEL_TEST_MODE=1)
+    #[arg(long, global = true)]
+    now: Option<String>,
+
+    /// UUID generation seed for reproducible UUIDs (only with AETHEL_TEST_MODE=1)
+    #[arg(long, global = true, value_name = "hex")]
+    uuid_seed: Option<String>,
+
+    /// Disable git operations (only with AETHEL_TEST_MODE=1)
+    #[arg(long, global = true, default_value = "true")]
+    git: bool,
+
     #[command(subcommand)]
     command: Commands,
 }
@@ -119,6 +131,23 @@ fn main() -> Result<()> {
 
     // Parse CLI arguments
     let cli = Cli::parse();
+
+    // Check test mode
+    let test_mode = std::env::var("AETHEL_TEST_MODE").unwrap_or_default() == "1";
+    
+    // Validate test mode flags
+    if !test_mode && (cli.now.is_some() || cli.uuid_seed.is_some() || !cli.git) {
+        anyhow::bail!("Test mode flags (--now, --uuid-seed, --git) require AETHEL_TEST_MODE=1");
+    }
+
+    // Set up test mode context if enabled
+    if test_mode {
+        aethel_core::test_mode::init_test_mode(
+            cli.now.as_deref(),
+            cli.uuid_seed.as_deref(),
+            cli.git,
+        );
+    }
 
     // Resolve vault root
     let vault_root = match cli.vault_root {

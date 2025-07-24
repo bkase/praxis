@@ -17,7 +17,7 @@ pub struct WriteResult {
 
 /// Generate a new UUID v7
 pub fn generate_uuid() -> Uuid {
-    Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext))
+    crate::test_mode::generate_uuid()
 }
 
 /// Format a timestamp as ISO 8601 UTC string

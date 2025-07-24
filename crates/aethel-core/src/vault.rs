@@ -11,7 +11,7 @@ use crate::{
     utils::WriteResult,
     validate::validate_doc_impl,
 };
-use chrono::Utc;
+use crate::test_mode;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use serde_json::Value;
@@ -141,7 +141,7 @@ pub(crate) fn apply_patch_impl(
                 // Find the pack and type
                 let (_pack, type_entry) = find_pack_and_type(&packs, doc_type)?;
 
-                let now = Utc::now();
+                let now = test_mode::now();
                 let doc = Doc {
                     uuid: crate::utils::generate_uuid(),
                     doc_type: doc_type.clone(),
@@ -195,7 +195,7 @@ pub(crate) fn apply_patch_impl(
                 patch.apply_body(&mut doc.body);
 
                 // Update timestamp
-                doc.updated = Utc::now();
+                doc.updated = test_mode::now();
 
                 (doc, false)
             }

@@ -1,0 +1,5 @@
+{
+  "code": 40902,
+  "data": null,
+  "message": "Error from core library: Type mismatch: Doc has type 'journal.morning', patch specified 'journal.evening'"
+}

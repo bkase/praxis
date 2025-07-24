@@ -21,7 +21,24 @@ pub fn execute(
     };
 
     // Parse patch
-    let patch: Patch = serde_json::from_str(&patch_json).map_err(AethelCliError::JsonInputParse)?;
+    let patch: Patch = match serde_json::from_str(&patch_json) {
+        Ok(p) => p,
+        Err(e) => {
+            let cli_error = AethelCliError::JsonInputParse(e);
+            match output_format {
+                OutputFormat::Json => {
+                    println!(
+                        "{}",
+                        serde_json::to_string_pretty(&cli_error.to_protocol_json())?
+                    );
+                    std::process::exit(1);
+                }
+                OutputFormat::Human => {
+                    return Err(cli_error.into());
+                }
+            }
+        }
+    };
 
     // Apply patch
     match apply_patch(vault_root, patch) {
@@ -54,7 +71,7 @@ pub fn execute(
             match output_format {
                 OutputFormat::Json => {
                     let cli_error = AethelCliError::CoreError(e);
-                    eprintln!(
+                    println!(
                         "{}",
                         serde_json::to_string_pretty(&cli_error.to_protocol_json())?
                     );

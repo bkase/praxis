@@ -38,7 +38,7 @@ pub static BASE_FRONTMATTER_SCHEMA: Lazy<Validator> = Lazy::new(|| {
                 "default": []
             }
         },
-        "additionalProperties": false
+        "additionalProperties": true
     });
 
     jsonschema::validator_for(&schema).expect("Failed to compile base frontmatter schema")

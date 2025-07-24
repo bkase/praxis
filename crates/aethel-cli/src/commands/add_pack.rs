@@ -40,7 +40,7 @@ pub fn execute(vault_root: &Path, source: &str, output_format: OutputFormat) -> 
             match output_format {
                 OutputFormat::Json => {
                     let cli_error = AethelCliError::CoreError(e);
-                    eprintln!(
+                    println!(
                         "{}",
                         serde_json::to_string_pretty(&cli_error.to_protocol_json())?
                     );
