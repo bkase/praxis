@@ -27,16 +27,16 @@ pub fn execute(
             let cli_error = AethelCliError::JsonInputParse(e);
             match output_format {
                 OutputFormat::Json => {
-                    println!(
+                    eprintln!(
                         "{}",
                         serde_json::to_string_pretty(&cli_error.to_protocol_json())?
                     );
-                    std::process::exit(1);
                 }
                 OutputFormat::Human => {
-                    return Err(cli_error.into());
+                    // Human errors are handled by anyhow's default handler in main
                 }
             }
+            return Err(cli_error.into());
         }
     };
 
@@ -71,16 +71,17 @@ pub fn execute(
             match output_format {
                 OutputFormat::Json => {
                     let cli_error = AethelCliError::CoreError(e);
-                    println!(
+                    eprintln!(
                         "{}",
                         serde_json::to_string_pretty(&cli_error.to_protocol_json())?
                     );
+                    Err(cli_error.into())
                 }
                 OutputFormat::Human => {
-                    return Err(e.into());
+                    // Human errors are handled by anyhow's default handler in main
+                    Err(e.into())
                 }
             }
-            std::process::exit(1);
         }
     }
 }

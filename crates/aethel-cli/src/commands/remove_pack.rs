@@ -20,8 +20,8 @@ pub fn execute(vault_root: &Path, name: &str, output_format: OutputFormat) -> Re
                     if removed {
                         println!("✓ Pack '{name}' removed successfully");
                     } else {
-                        println!("✗ Pack '{name}' not found");
-                        std::process::exit(1);
+                        eprintln!("✗ Pack '{name}' not found");
+                        return Err(anyhow::anyhow!("Pack '{}' not found", name));
                     }
                 }
             }
@@ -35,12 +35,13 @@ pub fn execute(vault_root: &Path, name: &str, output_format: OutputFormat) -> Re
                         "{}",
                         serde_json::to_string_pretty(&cli_error.to_protocol_json())?
                     );
+                    Err(cli_error.into())
                 }
                 OutputFormat::Human => {
-                    return Err(e.into());
+                    // Human errors are handled by anyhow's default handler in main
+                    Err(e.into())
                 }
             }
-            std::process::exit(1);
         }
     }
 }

@@ -183,7 +183,7 @@ impl TestCase {
         let update_golden = std::env::var("UPDATE_GOLDEN").is_ok();
 
         if update_golden {
-            self.update_golden_files(&vault_path, exit_code, &stdout)?;
+            self.update_golden_files(&vault_path, exit_code, &stdout, &stderr)?;
             anyhow::bail!("Golden files updated; please review and commit.");
         }
 
@@ -197,11 +197,24 @@ impl TestCase {
             );
         }
 
-        // Verify stdout
+        // Verify output (stdout for success, stderr for errors)
+        let output_to_check = if exit_code != 0 && matches!(&self.expect_stdout, ExpectedOutput::Json(_)) {
+            // For error cases with JSON output, extract JSON from stderr
+            match extract_json_from_stderr(&stderr) {
+                Some(json_str) => json_str,
+                None => {
+                    anyhow::bail!("Failed to extract JSON from stderr: {}", stderr);
+                }
+            }
+        } else {
+            // For success cases or markdown output, check stdout
+            stdout.to_string()
+        };
+        
         match &self.expect_stdout {
             ExpectedOutput::Json(expected) => {
-                let actual: Value = serde_json::from_str(&stdout)
-                    .context("Failed to parse stdout as JSON")?;
+                let actual: Value = serde_json::from_str(&output_to_check)
+                    .context("Failed to parse output as JSON")?;
                 let actual_canonical = canonicalize_json(&actual);
                 let expected_canonical = canonicalize_json(expected);
                 
@@ -214,7 +227,7 @@ impl TestCase {
                 }
             }
             ExpectedOutput::Markdown(expected) => {
-                let actual_normalized = normalize_markdown(&stdout);
+                let actual_normalized = normalize_markdown(&output_to_check);
                 let expected_normalized = normalize_markdown(expected);
                 
                 if actual_normalized != expected_normalized {
@@ -258,17 +271,29 @@ impl TestCase {
         Ok(())
     }
 
-    fn update_golden_files(&self, vault_path: &Path, exit_code: i32, stdout: &str) -> Result<()> {
+    fn update_golden_files(&self, vault_path: &Path, exit_code: i32, stdout: &str, stderr: &str) -> Result<()> {
         // Update exit code
         fs::write(
             self.dir.join("expect.exit.txt"),
             format!("{}\n", exit_code),
         )?;
 
-        // Update stdout
+        // Update stdout/stderr based on exit code
+        let output_to_save = if exit_code != 0 && matches!(&self.expect_stdout, ExpectedOutput::Json(_)) {
+            // For error cases with JSON output, extract JSON from stderr
+            match extract_json_from_stderr(stderr) {
+                Some(json_str) => json_str,
+                None => {
+                    anyhow::bail!("Failed to extract JSON from stderr for golden update: {}", stderr);
+                }
+            }
+        } else {
+            stdout.to_string()
+        };
+        
         match &self.expect_stdout {
             ExpectedOutput::Json(_) => {
-                let value: Value = serde_json::from_str(stdout)?;
+                let value: Value = serde_json::from_str(&output_to_save)?;
                 let canonical = canonicalize_json(&value);
                 fs::write(
                     self.dir.join("expect.stdout.json"),
@@ -278,7 +303,7 @@ impl TestCase {
             ExpectedOutput::Markdown(_) => {
                 fs::write(
                     self.dir.join("expect.stdout.md"),
-                    normalize_markdown(stdout),
+                    normalize_markdown(&output_to_save),
                 )?;
             }
         }
@@ -318,6 +343,42 @@ impl TestCase {
 
         Ok(())
     }
+}
+
+/// Extract JSON from stderr that may contain additional error text
+fn extract_json_from_stderr(stderr: &str) -> Option<String> {
+    // The JSON error object starts with '{' and ends with '}'
+    // Find the first '{' and extract until the matching '}'
+    let start = stderr.find('{')?;
+    
+    // Track brace depth to find the matching closing brace
+    let mut depth = 0;
+    let mut in_string = false;
+    let mut escape_next = false;
+    
+    let chars: Vec<char> = stderr[start..].chars().collect();
+    for (i, &ch) in chars.iter().enumerate() {
+        if escape_next {
+            escape_next = false;
+            continue;
+        }
+        
+        match ch {
+            '\\' if in_string => escape_next = true,
+            '"' => in_string = !in_string,
+            '{' if !in_string => depth += 1,
+            '}' if !in_string => {
+                depth -= 1;
+                if depth == 0 {
+                    // Found the matching closing brace
+                    return Some(stderr[start..start + i + 1].to_string());
+                }
+            }
+            _ => {}
+        }
+    }
+    
+    None
 }
 
 /// Canonicalize JSON for comparison
@@ -514,5 +575,47 @@ mod tests {
         if let Err(e) = run_all_tests() {
             panic!("Golden tests failed: {:#}", e);
         }
+    }
+
+    #[test]
+    fn test_extract_json_from_stderr() {
+        // Test basic JSON extraction
+        let stderr = r#"{
+  "code": 42200,
+  "message": "Error"
+}
+Error: Error from core library: Schema validation failed
+
+Caused by:
+    Schema validation failed"#;
+        
+        let extracted = extract_json_from_stderr(stderr);
+        assert!(extracted.is_some());
+        let json_str = extracted.unwrap();
+        let value: Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(value["code"], 42200);
+        assert_eq!(value["message"], "Error");
+        
+        // Test nested JSON extraction
+        let stderr_nested = r#"Some prefix text {
+  "error": {
+    "code": 500,
+    "nested": {
+      "field": "value"
+    }
+  }
+} Some suffix text"#;
+        
+        let extracted = extract_json_from_stderr(stderr_nested);
+        assert!(extracted.is_some());
+        let json_str = extracted.unwrap();
+        let value: Value = serde_json::from_str(&json_str).unwrap();
+        assert_eq!(value["error"]["code"], 500);
+        assert_eq!(value["error"]["nested"]["field"], "value");
+        
+        // Test no JSON found
+        let stderr_no_json = "Error: Something went wrong\nNo JSON here";
+        let extracted = extract_json_from_stderr(stderr_no_json);
+        assert!(extracted.is_none());
     }
 }

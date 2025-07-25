@@ -23,12 +23,13 @@ pub fn execute(
                         "{}",
                         serde_json::to_string_pretty(&cli_error.to_protocol_json())?
                     );
+                    return Err(cli_error.into());
                 }
                 OutputFormat::Human => {
+                    // Human errors are handled by anyhow's default handler in main
                     return Err(e.into());
                 }
             }
-            std::process::exit(1);
         }
     };
 
@@ -66,17 +67,17 @@ pub fn execute(
                         }],
                         "fixed": false
                     });
-                    println!("{}", serde_json::to_string_pretty(&output)?);
+                    eprintln!("{}", serde_json::to_string_pretty(&output)?);
                 }
                 OutputFormat::Human => {
-                    println!("✗ Document {uuid} is invalid");
-                    println!("  Error: {e}");
+                    eprintln!("✗ Document {uuid} is invalid");
+                    eprintln!("  Error: {e}");
                     if autofix {
-                        println!("  (autofix requested but not implemented in L1)");
+                        eprintln!("  (autofix requested but not implemented in L1)");
                     }
                 }
             }
-            std::process::exit(1);
+            Err(anyhow::anyhow!("Document validation failed: {}", e))
         }
     }
 }

@@ -34,12 +34,13 @@ pub fn execute(vault_root: &Path, uuid: Uuid, output_format: ReadOutputFormat) -
                         "{}",
                         serde_json::to_string_pretty(&cli_error.to_protocol_json())?
                     );
+                    Err(cli_error.into())
                 }
                 ReadOutputFormat::Md => {
-                    return Err(e.into());
+                    // Markdown errors are handled by anyhow's default handler in main
+                    Err(e.into())
                 }
             }
-            std::process::exit(1);
         }
     }
 }

@@ -57,12 +57,13 @@ pub fn execute(vault_root: &Path, output_format: OutputFormat) -> Result<()> {
                         "{}",
                         serde_json::to_string_pretty(&cli_error.to_protocol_json())?
                     );
+                    Err(cli_error.into())
                 }
                 OutputFormat::Human => {
-                    return Err(e.into());
+                    // Human errors are handled by anyhow's default handler in main
+                    Err(e.into())
                 }
             }
-            std::process::exit(1);
         }
     }
 }
