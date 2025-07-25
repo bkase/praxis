@@ -6,4 +6,5 @@ pub mod init;
 pub mod list;
 pub mod read;
 pub mod remove_pack;
+pub mod util;
 pub mod write;
