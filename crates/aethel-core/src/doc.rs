@@ -11,6 +11,14 @@ use serde_json::Value;
 use std::collections::BTreeMap;
 use uuid::Uuid;
 
+/// State for parsing markdown front-matter
+#[derive(Debug)]
+enum ParseState {
+    ExpectingFirstDelimiter,
+    InFrontMatter,
+    InBody,
+}
+
 /// A Doc represents a single document in the Aethel system
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub struct Doc {
@@ -62,28 +70,54 @@ struct FrontMatterOut {
 impl Doc {
     /// Parse a Doc from markdown content
     pub fn from_markdown(content: &str) -> Result<Self, AethelCoreError> {
-        // Split content into front-matter and body
-        let parts: Vec<&str> = content.splitn(3, "---\n").collect();
-
-        if parts.len() < 3 {
+        // Parse using line-based state machine for robustness
+        let lines = content.lines();
+        let mut state = ParseState::ExpectingFirstDelimiter;
+        let mut yaml_lines = Vec::new();
+        let mut body_lines = Vec::new();
+        
+        for line in lines {
+            match state {
+                ParseState::ExpectingFirstDelimiter => {
+                    if line.trim() == "---" {
+                        state = ParseState::InFrontMatter;
+                    } else if !line.trim().is_empty() {
+                        return Err(AethelCoreError::MalformedDocFile(
+                            "Content before first '---' delimiter".to_string(),
+                        ));
+                    }
+                }
+                ParseState::InFrontMatter => {
+                    if line.trim() == "---" {
+                        state = ParseState::InBody;
+                    } else {
+                        yaml_lines.push(line);
+                    }
+                }
+                ParseState::InBody => {
+                    body_lines.push(line);
+                }
+            }
+        }
+        
+        // Validate we found both delimiters
+        if matches!(state, ParseState::ExpectingFirstDelimiter) {
             return Err(AethelCoreError::MalformedDocFile(
-                "Missing '---' delimiters for front-matter".to_string(),
+                "Missing opening '---' delimiter".to_string(),
             ));
         }
-
-        // First part should be empty (before first ---)
-        if !parts[0].is_empty() {
+        if matches!(state, ParseState::InFrontMatter) {
             return Err(AethelCoreError::MalformedDocFile(
-                "Content before first '---' delimiter".to_string(),
+                "Missing closing '---' delimiter".to_string(),
             ));
         }
-
-        let yaml_content = parts[1];
-        let body = parts[2].to_string();
+        
+        let yaml_content = yaml_lines.join("\n");
+        let body = body_lines.join("\n");
 
         // Parse YAML front-matter
         let front_matter: FrontMatter =
-            serde_yaml::from_str(yaml_content).map_err(AethelCoreError::MalformedYaml)?;
+            serde_yaml::from_str(&yaml_content).map_err(AethelCoreError::MalformedYaml)?;
 
         // Convert extra fields to JSON Value
         let frontmatter_extra = serde_json::to_value(front_matter.extra)
@@ -209,5 +243,58 @@ Today was a good day!"#;
         assert!(markdown.contains("uuid: 550e8400-e29b-41d4-a716-446655440000"));
         assert!(markdown.contains("type: journal.morning"));
         assert!(markdown.contains("Today was a good day!"));
+    }
+    
+    #[test]
+    fn test_parse_crlf_line_endings() {
+        let content = "---\r\nuuid: 550e8400-e29b-41d4-a716-446655440000\r\ntype: journal.morning\r\ncreated: 2024-07-29T10:00:00Z\r\nupdated: 2024-07-29T10:00:00Z\r\nv: 1.0.0\r\ntags: []\r\n---\r\nToday was a good day!";
+        
+        let doc = Doc::from_markdown(content).unwrap();
+        assert_eq!(doc.doc_type, "journal.morning");
+        assert_eq!(doc.body, "Today was a good day!");
+    }
+    
+    #[test]
+    fn test_parse_with_whitespace() {
+        let content = "---   \nuuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\ncreated: 2024-07-29T10:00:00Z\nupdated: 2024-07-29T10:00:00Z\nv: 1.0.0\ntags: []\n---  \nToday was a good day!";
+        
+        let doc = Doc::from_markdown(content).unwrap();
+        assert_eq!(doc.doc_type, "journal.morning");
+        assert_eq!(doc.body, "Today was a good day!");
+    }
+    
+    #[test]
+    fn test_parse_missing_opening_delimiter() {
+        let content = "uuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\n---\nBody";
+        
+        let err = Doc::from_markdown(content).unwrap_err();
+        match err {
+            AethelCoreError::MalformedDocFile(msg) => {
+                assert!(msg.contains("Content before first '---' delimiter"));
+            }
+            _ => panic!("Expected MalformedDocFile error"),
+        }
+    }
+    
+    #[test]
+    fn test_parse_missing_closing_delimiter() {
+        let content = "---\nuuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\ncreated: 2024-07-29T10:00:00Z\nupdated: 2024-07-29T10:00:00Z\nv: 1.0.0\ntags: []";
+        
+        let err = Doc::from_markdown(content).unwrap_err();
+        match err {
+            AethelCoreError::MalformedDocFile(msg) => {
+                assert!(msg.contains("Missing closing '---' delimiter"));
+            }
+            _ => panic!("Expected MalformedDocFile error"),
+        }
+    }
+    
+    #[test]
+    fn test_parse_body_contains_triple_dash() {
+        let content = "---\nuuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\ncreated: 2024-07-29T10:00:00Z\nupdated: 2024-07-29T10:00:00Z\nv: 1.0.0\ntags: []\n---\nToday was a good day!\n---\nThis is still part of the body.";
+        
+        let doc = Doc::from_markdown(content).unwrap();
+        assert_eq!(doc.doc_type, "journal.morning");
+        assert_eq!(doc.body, "Today was a good day!\n---\nThis is still part of the body.");
     }
 }
