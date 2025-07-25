@@ -3,6 +3,7 @@
 //! This module handles file system operations, path resolution,
 //! and atomic writes for Docs within a vault.
 
+use crate::test_mode;
 use crate::{
     doc::Doc,
     error::AethelCoreError,
@@ -11,7 +12,6 @@ use crate::{
     utils::WriteResult,
     validate::validate_doc_impl,
 };
-use crate::test_mode;
 use once_cell::sync::Lazy;
 use parking_lot::Mutex;
 use serde_json::Value;

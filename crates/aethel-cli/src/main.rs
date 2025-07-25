@@ -134,7 +134,7 @@ fn main() -> Result<()> {
 
     // Check test mode
     let test_mode = std::env::var("AETHEL_TEST_MODE").unwrap_or_default() == "1";
-    
+
     // Validate test mode flags
     if !test_mode && (cli.now.is_some() || cli.uuid_seed.is_some() || !cli.git) {
         anyhow::bail!("Test mode flags (--now, --uuid-seed, --git) require AETHEL_TEST_MODE=1");

@@ -41,7 +41,6 @@ impl TestCase {
         let cli_args_path = case_dir.join("cli-args.txt");
         let cli_args = fs::read_to_string(&cli_args_path)
             .context("Failed to read cli-args.txt")?
-            .trim()
             .split_whitespace()
             .map(String::from)
             .collect();
@@ -121,15 +120,22 @@ impl TestCase {
         let mut cmd = Command::cargo_bin("aethel")?;
         cmd.current_dir(&temp_dir);
         cmd.arg("--vault-root").arg(&vault_path);
-        
+
         // Add CLI args
         for (i, arg) in self.cli_args.iter().enumerate() {
             // Handle relative paths for add command
             if i == 1 && self.cli_args[0] == "add" && !arg.starts_with('-') {
-                // This is the pack source path - resolve it relative to the test case directory
-                if arg.contains("/pack-to-add") {
-                    // Resolve pack path relative to the test case directory
-                    let pack_path = self.dir.join("pack-to-add");
+                // This is the pack source path - make it absolute
+                if arg.starts_with("tests/cases/") || arg.contains("/pack-to-add") {
+                    // For paths referencing test cases, resolve from the git root
+                    let pack_path = std::fs::canonicalize(
+                        PathBuf::from(env!("CARGO_MANIFEST_DIR"))
+                            .parent()
+                            .unwrap()
+                            .parent()
+                            .unwrap()
+                            .join(arg),
+                    )?;
                     cmd.arg(pack_path);
                 } else {
                     cmd.arg(arg);
@@ -173,10 +179,10 @@ impl TestCase {
         let exit_code = output.status.code().unwrap_or(-1);
         let stdout = String::from_utf8_lossy(&output.stdout);
         let stderr = String::from_utf8_lossy(&output.stderr);
-        
+
         // Debug output for failing tests
         if stdout.is_empty() && exit_code != 0 {
-            eprintln!("Command failed with stderr: {}", stderr);
+            eprintln!("Command failed with stderr: {stderr}");
         }
 
         // Check if we're updating golden files
@@ -198,26 +204,27 @@ impl TestCase {
         }
 
         // Verify output (stdout for success, stderr for errors)
-        let output_to_check = if exit_code != 0 && matches!(&self.expect_stdout, ExpectedOutput::Json(_)) {
-            // For error cases with JSON output, extract JSON from stderr
-            match extract_json_from_stderr(&stderr) {
-                Some(json_str) => json_str,
-                None => {
-                    anyhow::bail!("Failed to extract JSON from stderr: {}", stderr);
+        let output_to_check =
+            if exit_code != 0 && matches!(&self.expect_stdout, ExpectedOutput::Json(_)) {
+                // For error cases with JSON output, extract JSON from stderr
+                match extract_json_from_stderr(&stderr) {
+                    Some(json_str) => json_str,
+                    None => {
+                        anyhow::bail!("Failed to extract JSON from stderr: {}", stderr);
+                    }
                 }
-            }
-        } else {
-            // For success cases or markdown output, check stdout
-            stdout.to_string()
-        };
-        
+            } else {
+                // For success cases or markdown output, check stdout
+                stdout.to_string()
+            };
+
         match &self.expect_stdout {
             ExpectedOutput::Json(expected) => {
                 let actual: Value = serde_json::from_str(&output_to_check)
                     .context("Failed to parse output as JSON")?;
                 let actual_canonical = canonicalize_json(&actual);
                 let expected_canonical = canonicalize_json(expected);
-                
+
                 if actual_canonical != expected_canonical {
                     anyhow::bail!(
                         "JSON output mismatch:\nExpected:\n{}\nActual:\n{}",
@@ -229,7 +236,7 @@ impl TestCase {
             ExpectedOutput::Markdown(expected) => {
                 let actual_normalized = normalize_markdown(&output_to_check);
                 let expected_normalized = normalize_markdown(expected);
-                
+
                 if actual_normalized != expected_normalized {
                     anyhow::bail!(
                         "Markdown output mismatch:\nExpected:\n{}\nActual:\n{}",
@@ -256,8 +263,10 @@ impl TestCase {
                 .arg("--pretty=oneline")
                 .arg("--no-decorate")
                 .output()?;
-            
-            let actual_git = String::from_utf8_lossy(&git_output.stdout).trim().to_string();
+
+            let actual_git = String::from_utf8_lossy(&git_output.stdout)
+                .trim()
+                .to_string();
             if actual_git != expected_git.trim() {
                 anyhow::bail!(
                     "Git state mismatch:\nExpected:\n{}\nActual:\n{}",
@@ -271,26 +280,33 @@ impl TestCase {
         Ok(())
     }
 
-    fn update_golden_files(&self, vault_path: &Path, exit_code: i32, stdout: &str, stderr: &str) -> Result<()> {
+    fn update_golden_files(
+        &self,
+        vault_path: &Path,
+        exit_code: i32,
+        stdout: &str,
+        stderr: &str,
+    ) -> Result<()> {
         // Update exit code
-        fs::write(
-            self.dir.join("expect.exit.txt"),
-            format!("{}\n", exit_code),
-        )?;
+        fs::write(self.dir.join("expect.exit.txt"), format!("{exit_code}\n"))?;
 
         // Update stdout/stderr based on exit code
-        let output_to_save = if exit_code != 0 && matches!(&self.expect_stdout, ExpectedOutput::Json(_)) {
-            // For error cases with JSON output, extract JSON from stderr
-            match extract_json_from_stderr(stderr) {
-                Some(json_str) => json_str,
-                None => {
-                    anyhow::bail!("Failed to extract JSON from stderr for golden update: {}", stderr);
+        let output_to_save =
+            if exit_code != 0 && matches!(&self.expect_stdout, ExpectedOutput::Json(_)) {
+                // For error cases with JSON output, extract JSON from stderr
+                match extract_json_from_stderr(stderr) {
+                    Some(json_str) => json_str,
+                    None => {
+                        anyhow::bail!(
+                            "Failed to extract JSON from stderr for golden update: {}",
+                            stderr
+                        );
+                    }
                 }
-            }
-        } else {
-            stdout.to_string()
-        };
-        
+            } else {
+                stdout.to_string()
+            };
+
         match &self.expect_stdout {
             ExpectedOutput::Json(_) => {
                 let value: Value = serde_json::from_str(&output_to_save)?;
@@ -315,7 +331,7 @@ impl TestCase {
                 fs::remove_dir_all(&vault_after_path)?;
             }
             copy_dir_all(vault_path, &vault_after_path)?;
-            
+
             // Remove .git/objects to avoid bloat
             let git_objects = vault_after_path.join(".git/objects");
             if git_objects.exists() {
@@ -334,7 +350,7 @@ impl TestCase {
                 .arg("--pretty=oneline")
                 .arg("--no-decorate")
                 .output()?;
-            
+
             fs::write(
                 self.dir.join("git.after.txt"),
                 String::from_utf8_lossy(&git_output.stdout).as_bytes(),
@@ -350,19 +366,19 @@ fn extract_json_from_stderr(stderr: &str) -> Option<String> {
     // The JSON error object starts with '{' and ends with '}'
     // Find the first '{' and extract until the matching '}'
     let start = stderr.find('{')?;
-    
+
     // Track brace depth to find the matching closing brace
     let mut depth = 0;
     let mut in_string = false;
     let mut escape_next = false;
-    
+
     let chars: Vec<char> = stderr[start..].chars().collect();
     for (i, &ch) in chars.iter().enumerate() {
         if escape_next {
             escape_next = false;
             continue;
         }
-        
+
         match ch {
             '\\' if in_string => escape_next = true,
             '"' => in_string = !in_string,
@@ -377,7 +393,7 @@ fn extract_json_from_stderr(stderr: &str) -> Option<String> {
             _ => {}
         }
     }
-    
+
     None
 }
 
@@ -402,9 +418,7 @@ fn canonicalize_json(value: &Value) -> Value {
             }
             Value::Object(sorted_map)
         }
-        Value::Array(arr) => {
-            Value::Array(arr.iter().map(canonicalize_json).collect())
-        }
+        Value::Array(arr) => Value::Array(arr.iter().map(canonicalize_json).collect()),
         _ => value.clone(),
     }
 }
@@ -423,19 +437,19 @@ fn normalize_markdown(content: &str) -> String {
 /// Copy directory recursively
 fn copy_dir_all(src: &Path, dst: &Path) -> Result<()> {
     fs::create_dir_all(dst)?;
-    
+
     for entry in fs::read_dir(src)? {
         let entry = entry?;
         let src_path = entry.path();
         let dst_path = dst.join(entry.file_name());
-        
+
         if src_path.is_dir() {
             copy_dir_all(&src_path, &dst_path)?;
         } else {
             fs::copy(&src_path, &dst_path)?;
         }
     }
-    
+
     Ok(())
 }
 
@@ -443,10 +457,10 @@ fn copy_dir_all(src: &Path, dst: &Path) -> Result<()> {
 fn compare_directories(actual: &Path, expected: &Path) -> Result<()> {
     let mut actual_files = collect_files(actual)?;
     let mut expected_files = collect_files(expected)?;
-    
+
     actual_files.sort();
     expected_files.sort();
-    
+
     // Check file lists match
     if actual_files != expected_files {
         anyhow::bail!(
@@ -455,26 +469,26 @@ fn compare_directories(actual: &Path, expected: &Path) -> Result<()> {
             expected_files
         );
     }
-    
+
     // Compare file contents
     for rel_path in &actual_files {
         let actual_path = actual.join(rel_path);
         let expected_path = expected.join(rel_path);
-        
+
         // Skip .git/objects
         if rel_path.starts_with(".git/objects") {
             continue;
         }
-        
+
         let actual_content = fs::read(&actual_path)?;
         let expected_content = fs::read(&expected_path)?;
-        
+
         // Special handling for YAML files
         if rel_path.ends_with(".md") && actual_path.exists() {
             // Parse and compare frontmatter
             let actual_str = String::from_utf8_lossy(&actual_content);
             let expected_str = String::from_utf8_lossy(&expected_content);
-            
+
             if !compare_doc_files(&actual_str, &expected_str)? {
                 anyhow::bail!(
                     "File content mismatch for {}:\nActual:\n{}\nExpected:\n{}",
@@ -492,29 +506,29 @@ fn compare_directories(actual: &Path, expected: &Path) -> Result<()> {
             );
         }
     }
-    
+
     Ok(())
 }
 
 /// Collect all files in a directory (relative paths)
 fn collect_files(dir: &Path) -> Result<Vec<String>> {
     let mut files = Vec::new();
-    
+
     for entry in WalkDir::new(dir) {
         let entry = entry?;
         if entry.file_type().is_file() {
             let rel_path = entry.path().strip_prefix(dir)?;
             let rel_str = rel_path.to_string_lossy().replace('\\', "/");
-            
+
             // Skip .DS_Store
             if rel_str.ends_with(".DS_Store") {
                 continue;
             }
-            
+
             files.push(rel_str);
         }
     }
-    
+
     Ok(files)
 }
 
@@ -532,11 +546,11 @@ pub fn run_all_tests() -> Result<()> {
         .filter_map(|e| e.ok())
         .filter(|e| e.path().is_dir())
         .collect();
-    
+
     entries.sort_by_key(|e| e.file_name());
-    
+
     let mut failed = Vec::new();
-    
+
     for entry in entries {
         let case_dir = entry.path();
         match TestCase::load(&case_dir) {
@@ -546,7 +560,8 @@ pub fn run_all_tests() -> Result<()> {
                 }
             }
             Err(e) => {
-                let name = case_dir.file_name()
+                let name = case_dir
+                    .file_name()
                     .and_then(|s| s.to_str())
                     .unwrap_or("unknown")
                     .to_string();
@@ -554,15 +569,15 @@ pub fn run_all_tests() -> Result<()> {
             }
         }
     }
-    
+
     if !failed.is_empty() {
         eprintln!("\n{} test(s) failed:", failed.len());
         for (name, err) in &failed {
-            eprintln!("\n{}: {:#}", name, err);
+            eprintln!("\n{name}: {err:#}");
         }
         anyhow::bail!("{} test(s) failed", failed.len());
     }
-    
+
     Ok(())
 }
 
@@ -573,7 +588,7 @@ mod tests {
     #[test]
     fn test_golden_suite() {
         if let Err(e) = run_all_tests() {
-            panic!("Golden tests failed: {:#}", e);
+            panic!("Golden tests failed: {e:#}");
         }
     }
 
@@ -588,14 +603,14 @@ Error: Error from core library: Schema validation failed
 
 Caused by:
     Schema validation failed"#;
-        
+
         let extracted = extract_json_from_stderr(stderr);
         assert!(extracted.is_some());
         let json_str = extracted.unwrap();
         let value: Value = serde_json::from_str(&json_str).unwrap();
         assert_eq!(value["code"], 42200);
         assert_eq!(value["message"], "Error");
-        
+
         // Test nested JSON extraction
         let stderr_nested = r#"Some prefix text {
   "error": {
@@ -605,14 +620,14 @@ Caused by:
     }
   }
 } Some suffix text"#;
-        
+
         let extracted = extract_json_from_stderr(stderr_nested);
         assert!(extracted.is_some());
         let json_str = extracted.unwrap();
         let value: Value = serde_json::from_str(&json_str).unwrap();
         assert_eq!(value["error"]["code"], 500);
         assert_eq!(value["error"]["nested"]["field"], "value");
-        
+
         // Test no JSON found
         let stderr_no_json = "Error: Something went wrong\nNo JSON here";
         let extracted = extract_json_from_stderr(stderr_no_json);

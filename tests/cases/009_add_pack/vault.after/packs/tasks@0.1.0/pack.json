@@ -1,11 +1,12 @@
 {
   "name": "tasks",
+  "version": "0.1.0",
   "protocolVersion": "0.1.0",
   "types": [
     {
       "id": "tasks.simple",
-      "version": "1.0.0"
+      "version": "1.0.0",
+      "schema": "types/simple.schema.json"
     }
-  ],
-  "version": "0.1.0"
+  ]
 }

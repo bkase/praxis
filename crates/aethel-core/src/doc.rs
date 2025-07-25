@@ -75,7 +75,7 @@ impl Doc {
         let mut state = ParseState::ExpectingFirstDelimiter;
         let mut yaml_lines = Vec::new();
         let mut body_lines = Vec::new();
-        
+
         for line in lines {
             match state {
                 ParseState::ExpectingFirstDelimiter => {
@@ -99,7 +99,7 @@ impl Doc {
                 }
             }
         }
-        
+
         // Validate we found both delimiters
         if matches!(state, ParseState::ExpectingFirstDelimiter) {
             return Err(AethelCoreError::MalformedDocFile(
@@ -111,7 +111,7 @@ impl Doc {
                 "Missing closing '---' delimiter".to_string(),
             ));
         }
-        
+
         let yaml_content = yaml_lines.join("\n");
         let body = body_lines.join("\n");
 
@@ -244,29 +244,30 @@ Today was a good day!"#;
         assert!(markdown.contains("type: journal.morning"));
         assert!(markdown.contains("Today was a good day!"));
     }
-    
+
     #[test]
     fn test_parse_crlf_line_endings() {
         let content = "---\r\nuuid: 550e8400-e29b-41d4-a716-446655440000\r\ntype: journal.morning\r\ncreated: 2024-07-29T10:00:00Z\r\nupdated: 2024-07-29T10:00:00Z\r\nv: 1.0.0\r\ntags: []\r\n---\r\nToday was a good day!";
-        
+
         let doc = Doc::from_markdown(content).unwrap();
         assert_eq!(doc.doc_type, "journal.morning");
         assert_eq!(doc.body, "Today was a good day!");
     }
-    
+
     #[test]
     fn test_parse_with_whitespace() {
         let content = "---   \nuuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\ncreated: 2024-07-29T10:00:00Z\nupdated: 2024-07-29T10:00:00Z\nv: 1.0.0\ntags: []\n---  \nToday was a good day!";
-        
+
         let doc = Doc::from_markdown(content).unwrap();
         assert_eq!(doc.doc_type, "journal.morning");
         assert_eq!(doc.body, "Today was a good day!");
     }
-    
+
     #[test]
     fn test_parse_missing_opening_delimiter() {
-        let content = "uuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\n---\nBody";
-        
+        let content =
+            "uuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\n---\nBody";
+
         let err = Doc::from_markdown(content).unwrap_err();
         match err {
             AethelCoreError::MalformedDocFile(msg) => {
@@ -275,11 +276,11 @@ Today was a good day!"#;
             _ => panic!("Expected MalformedDocFile error"),
         }
     }
-    
+
     #[test]
     fn test_parse_missing_closing_delimiter() {
         let content = "---\nuuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\ncreated: 2024-07-29T10:00:00Z\nupdated: 2024-07-29T10:00:00Z\nv: 1.0.0\ntags: []";
-        
+
         let err = Doc::from_markdown(content).unwrap_err();
         match err {
             AethelCoreError::MalformedDocFile(msg) => {
@@ -288,13 +289,16 @@ Today was a good day!"#;
             _ => panic!("Expected MalformedDocFile error"),
         }
     }
-    
+
     #[test]
     fn test_parse_body_contains_triple_dash() {
         let content = "---\nuuid: 550e8400-e29b-41d4-a716-446655440000\ntype: journal.morning\ncreated: 2024-07-29T10:00:00Z\nupdated: 2024-07-29T10:00:00Z\nv: 1.0.0\ntags: []\n---\nToday was a good day!\n---\nThis is still part of the body.";
-        
+
         let doc = Doc::from_markdown(content).unwrap();
         assert_eq!(doc.doc_type, "journal.morning");
-        assert_eq!(doc.body, "Today was a good day!\n---\nThis is still part of the body.");
+        assert_eq!(
+            doc.body,
+            "Today was a good day!\n---\nThis is still part of the body."
+        );
     }
 }

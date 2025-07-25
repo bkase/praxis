@@ -24,7 +24,7 @@ pub fn init_test_mode(now: Option<&str>, uuid_seed: Option<&str>, git_enabled: b
         uuid_seed: uuid_seed.and_then(|s| u64::from_str_radix(s, 16).ok()),
         git_enabled,
     };
-    
+
     let mut guard = TEST_MODE_CONFIG.lock();
     *guard = Some(config);
 }
@@ -55,7 +55,7 @@ pub fn generate_uuid() -> Uuid {
             let mut counter = COUNTER.lock();
             let value = seed.wrapping_add(*counter);
             *counter += 1;
-            
+
             // Create deterministic UUID v4
             let bytes = [
                 (value >> 56) as u8,
@@ -78,7 +78,7 @@ pub fn generate_uuid() -> Uuid {
             return Uuid::from_bytes(bytes);
         }
     }
-    
+
     // Normal UUID v7 generation
     Uuid::new_v7(uuid::Timestamp::now(uuid::NoContext))
 }
