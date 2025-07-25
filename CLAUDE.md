@@ -55,9 +55,11 @@ aethel/
 ├── Cargo.toml              # Workspace definition
 ├── .mise.toml              # Tool version management
 ├── Makefile                # Build automation
-├── protocol.md             # Core protocol specification
-├── implementation-layers.md # Strict implementation sequence
-├── sdd.md                  # Software Design Document
+├── docs/
+│   ├── protocol.md         # Core protocol specification
+│   ├── implementation-layers.md # Strict implementation sequence
+│   ├── sdd.md              # Software Design Document
+│   └── golden-tests.md     # Golden test documentation
 └── crates/
     ├── aethel-core/        # L0: Core library
     └── aethel-cli/         # L1: CLI binary
