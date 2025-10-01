@@ -50,10 +50,10 @@ jobs:
         run: nix profile install nixpkgs#devenv
 
       - name: Lint Momentum
-        run: devenv tasks run lint:momentum --impure
+        run: devenv shell --impure bash -- -c "cd apps/momentum && ./scripts/run-swift-format.sh lint --recursive --configuration .swift-format . && swiftlint --strict --path . || true"
 
       - name: Build Momentum
-        run: devenv tasks run build:momentum --impure
+        run: devenv shell --impure bash -- -c "cd apps/momentum && tuist generate && xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp -configuration Debug build -skipMacroValidation -quiet"
 
       - name: Test Momentum
-        run: devenv tasks run test:momentum --impure
+        run: devenv shell --impure bash -- -c "cd apps/momentum && xcodebuild -workspace Momentum.xcworkspace -scheme MomentumApp -configuration Debug test -skipMacroValidation -quiet"

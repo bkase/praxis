@@ -10,28 +10,26 @@ This repository hosts the Praxis projects in a single mono-repo. The layout foll
 
 ## Development Environment
 
-Use [`devenv`](https://devenv.sh) for all tooling. With Nix installed you can run:
+Use [`devenv`](https://devenv.sh) for all tooling. Once devenv is installed, you can run:
 
 ```bash
-nix run nixpkgs#devenv -- tasks list
+devenv tasks list
 ```
 
 Common commands:
 
 ```bash
-nix run nixpkgs#devenv -- tasks run build:aethel
-nix run nixpkgs#devenv -- tasks run build:momentum
+devenv tasks run build:aethel
+devenv tasks run build:momentum --impure
 ```
 
-Momentum tasks call `tuist generate` and `xcodebuild` directly, so make sure Xcode 16+ is installed and available at `/Applications/Xcode.app` before running them.
+**Note:** Momentum tasks require `--impure` because they need access to Xcode outside the Nix sandbox. Make sure Xcode 16+ is installed at `/Applications/Xcode.app`.
 
 To open an interactive shell with all tooling available:
 
 ```bash
-nix run nixpkgs#devenv -- shell
+devenv shell
 ```
-
-To open a shell with multiple profiles:
 
 ## Workflows
 
