@@ -1,0 +1,34 @@
+# Build artifacts
+/target/
+/Cargo.lock
+
+# IDE
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS
+.DS_Store
+Thumbs.db
+
+# Test artifacts
+*.orig
+*.rej
+*.bak
+
+# Aethel vault files (for testing)
+/test-vault/
+/.aethel/
+
+# Swift build artifacts
+AethelSwift/.build/
+AethelSwift/build/
+AethelSwift/.swiftpm/
+AethelSwift/BuildTools/.build/
+AethelSwift/BuildTools/.swiftpm/
+*.xcodeproj
+*.xcworkspace
+xcuserdata/
+DerivedData/
