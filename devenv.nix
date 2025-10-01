@@ -30,7 +30,7 @@ in {
 
   tasks."build:aethel".exec = "cargo build --workspace --manifest-path core/aethel/Cargo.toml";
   tasks."test:aethel".exec  = "cargo nextest run --manifest-path core/aethel/Cargo.toml";
-  tasks."lint:aethel".exec  = "cargo clippy --all-targets --all-features -- -D warnings";
+  tasks."lint:aethel".exec  = "cargo clippy --manifest-path core/aethel/Cargo.toml --all-targets --all-features -- -D warnings";
 
   tasks."build:momentum".exec = runMomentum ''
     xcodebuild -workspace Momentum.xcworkspace \
