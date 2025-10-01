@@ -257,7 +257,7 @@ extension A4Client: DependencyKey {
                 """
 
             let escapedPrompt = escapeForSingleQuotes(prompt)
-            let command = "source ~/.zshrc && eval \"$(mise hook-env -s zsh)\" && claude -p '\(escapedPrompt)'"
+            let command = "source ~/.zshrc && claude -p '\(escapedPrompt)'"
 
             let result = try await runZshCommand(command)
 

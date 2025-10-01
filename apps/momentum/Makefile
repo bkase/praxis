@@ -1,13 +1,14 @@
 .PHONY: all test build clean swift-test swift-build swift-format swift-lint format lint install-tools tail-logs
 
+XCODE_DEVELOPER_PATH ?= /Applications/Xcode.app/Contents/Developer
+XCODE_ENV = env -u CC -u CXX -u OBJC -u OBJCXX -u SDKROOT -u CPATH -u LIBRARY_PATH -u NIX_CFLAGS_COMPILE -u NIX_LDFLAGS -u NIX_CFLAGS_LINK -u NIX_CC -u CFLAGS -u CXXFLAGS -u OBJCFLAGS -u LDFLAGS -u CPPFLAGS -u DYLD_LIBRARY_PATH
+
 # Default target
 all: build test
 
 # Install required tools
 install-tools:
-	@echo "Installing required tools via mise..."
-	@mise install
-	@echo "Building swift-format..."
+	@echo "Building swift-format tooling..."
 	@cd BuildTools && swift build
 
 # Swift targets
@@ -17,11 +18,11 @@ swift-format:
 
 swift-generate:
 	@echo "Generating Xcode project..."
-	@eval "$$(mise activate bash)" && tuist generate
+	@$(XCODE_ENV) DEVELOPER_DIR=$(XCODE_DEVELOPER_PATH) tuist generate
 
 swift-build-only:
 	@echo "Building Swift app..."
-	@xcodebuild -workspace Momentum.xcworkspace \
+	@$(XCODE_ENV) DEVELOPER_DIR=$(XCODE_DEVELOPER_PATH) xcodebuild -workspace Momentum.xcworkspace \
 		-scheme MomentumApp \
 		-configuration Debug \
 		build \
@@ -34,7 +35,7 @@ swift-lint:
 
 swift-test-only:
 	@echo "Running Swift tests..."
-	@xcodebuild -workspace Momentum.xcworkspace \
+	@$(XCODE_ENV) DEVELOPER_DIR=$(XCODE_DEVELOPER_PATH) xcodebuild -workspace Momentum.xcworkspace \
 		-scheme MomentumApp \
 		-configuration Debug \
 		test \

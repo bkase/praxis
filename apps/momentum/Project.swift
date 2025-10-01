@@ -14,7 +14,7 @@ let project = Project(
             url: "https://github.com/pointfreeco/swift-composable-architecture",
             requirement: .upToNextMajor(from: "1.15.0")
         ),
-        .local(path: "external/Aethel/AethelSwift"),
+        .local(path: "../../core/aethel/AethelSwift"),
     ],
     settings: .settings(
         base: [

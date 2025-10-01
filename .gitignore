@@ -1,0 +1,27 @@
+# macOS
+.DS_Store
+
+# Nix/dev
+.direnv/
+.devenv/
+.devenv.flake.nix
+devenv.local.nix
+result
+.result
+.cache/
+.envrc.local
+
+# Python
+__pycache__/
+*.pyc
+.venv/
+.pytest_cache/
+
+# Swift/Xcode
+.build/
+DerivedData/
+
+# MCP/Integrations secrets
+integrations/google-calendar-mcp/*.json
+integrations/google-calendar-mcp/.env
+integrations/google-calendar-mcp/token.json

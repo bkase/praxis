@@ -1,0 +1,45 @@
+name: ci
+
+on:
+  push:
+    branches: [ main ]
+  pull_request:
+
+jobs:
+  build-all:
+    runs-on: macos-14
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: cachix/install-nix-action@v27
+
+      - name: Install devenv
+        run: nix profile install github:cachix/devenv/latest
+
+      - name: Install direnv
+        run: brew install direnv || true
+
+      - name: Build Aethel
+        run: devenv tasks run build:aethel
+      - name: Test Aethel
+        run: devenv tasks run test:aethel
+      - name: Lint Aethel
+        run: devenv tasks run lint:aethel
+
+      - name: Build Momentum
+        run: devenv tasks run build:momentum
+      - name: Test Momentum
+        run: devenv tasks run test:momentum
+      - name: Lint Momentum
+        run: devenv tasks run lint:momentum
+
+      - name: Install Tutor
+        run: devenv tasks run install:tutor
+      - name: Test Tutor
+        run: devenv tasks run test:tutor
+      - name: Lint Tutor
+        run: devenv tasks run lint:tutor
+
+      - name: Check Workflows
+        run: devenv tasks run check:workflows

@@ -33,7 +33,7 @@ The `swift-generate` target automatically fixes formatting issues in generated f
 ### Known Issues and Solutions
 
 1. **"claude CLI not found" error**: 
-   - The Rust CLI requires the `claude` CLI tool to be installed via mise
+   - The Rust CLI requires the `claude` CLI tool to be installed and available on your shell `PATH`
    - App sandboxing must be disabled to allow subprocess execution
    - Solution: Disabled sandboxing in Info.plist following Vibetunnel pattern
 
@@ -267,11 +267,11 @@ The project uses automatic code formatting to maintain consistent style:
    git submodule update --init --recursive
    ```
 
-2. **Claude CLI**: Install via mise for AI analysis features:
-   - Install mise if not already installed
-   - Install claude CLI: `mise use -g npm:anthropic-ai-claude-code@latest`
-   - Authenticate with claude: `claude login`
-   - The app will automatically load your shell environment to access the tool
+2. **Claude CLI**: Install the official CLI for AI analysis features:
+   - Install Node.js if you don’t already have it available
+   - Install the CLI globally: `npm install -g @anthropic-ai/claude-code`
+   - Authenticate with Claude: `claude login`
+   - Ensure the `claude` binary is on your shell `PATH`
 
 3. **Vault Location**: 
    - Default: `~/Documents/vault`
@@ -281,9 +281,9 @@ The project uses automatic code formatting to maintain consistent style:
 ## Claude Integration
 
 The Rust CLI uses the `claude` CLI tool for analysis:
-- Uses the authenticated `claude` CLI installed via mise
+- Uses the authenticated `claude` CLI installed globally (e.g., via `npm install -g @anthropic-ai/claude-code`)
 - No API keys required - uses your existing Claude subscription
-- Loads shell environment to access mise-managed tools
+- Loads the user shell environment (`source ~/.zshrc`) so the CLI can be found on `PATH`
 - Returns structured JSON with summary, suggestion, and reasoning
 - Requires app sandboxing to be disabled for subprocess execution
 
