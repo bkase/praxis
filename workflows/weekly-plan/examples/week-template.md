@@ -9,7 +9,7 @@ time_blocks:
   evening_2: "21:00-23:00"
 ---
 
-# Week of [Date Range]
+# Week YYYY-Wnn
 
 ## Last Week's Reflection
 
