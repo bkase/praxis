@@ -1,0 +1,52 @@
+name: CI
+
+on:
+  push:
+    branches: [ main, master ]
+    paths-ignore:
+      - 'docs/**'
+      - 'todos/**'
+      - 'CLAUDE.md'
+      - '*.md'
+  pull_request:
+    branches: [ main, master ]
+    paths-ignore:
+      - 'docs/**'
+      - 'todos/**'
+      - 'CLAUDE.md'
+      - '*.md'
+
+jobs:
+  swift:
+    name: Swift Build and Test
+    runs-on: macos-14
+    
+    steps:
+    - uses: actions/checkout@v4
+      with:
+        submodules: recursive
+    
+    - name: Setup Xcode
+      uses: maxim-lobanov/setup-xcode@v1
+      with:
+        xcode-version: '16.1'
+    
+    - name: Install mise
+      run: |
+        curl https://mise.run | sh
+        echo "$HOME/.local/bin" >> $GITHUB_PATH
+
+    - name: Install build tools
+      run: make install-tools
+
+    - name: Generate Xcode project
+      run: make swift-generate
+
+    - name: Run Swift linting
+      run: make swift-lint
+
+    - name: Build Swift app
+      run: make swift-build-only
+
+    - name: Run Swift tests
+      run: make swift-test-only
