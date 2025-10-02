@@ -21,7 +21,7 @@ This system implements an adaptive tutoring framework where:
 
 ## Configuration Files
 
-This command reads from configuration files in `./tutor-config/`:
+This command reads from configuration files in `$(a4 root)/routines/tutor-config/`:
 
 - `learner-profile.md`: Prior knowledge, goals, and preferences
 - `learning-objectives.md`: Current learning targets and outcomes
@@ -41,9 +41,9 @@ This command reads from configuration files in `./tutor-config/`:
 
 ### PHASE 0: SESSION INITIALIZATION
 
-1. Read learner profile from `./tutor-config/learner-profile.md`
-2. Check for active projects in `./tutor-config/project-registry.md`
-3. Review spaced repetition schedule in `./tutor-config/spaced-review.md`
+1. Read learner profile from `$(a4 root)/routines/tutor-config/learner-profile.md`
+2. Check for active projects in `$(a4 root)/routines/tutor-config/project-registry.md`
+3. Review spaced repetition schedule in `$(a4 root)/routines/tutor-config/spaced-review.md`
 4. Determine session type based on arguments or learner needs
 5. Show user: "🎓 Starting [session type] for [topic/project]"
 
@@ -161,9 +161,9 @@ Each specialized mode maintains the core loop while emphasizing different techni
    ```
 
 2. Update tracking files:
-   - Add completed topics to `spaced-review.md` with next review date
-   - Update project progress in `project-registry.md`
-   - Note any new learning objectives in `learning-objectives.md`
+   - Add completed topics to `$(a4 root)/routines/tutor-config/spaced-review.md` with next review date
+   - Update project progress in `$(a4 root)/routines/tutor-config/project-registry.md`
+   - Note any new learning objectives in `$(a4 root)/routines/tutor-config/learning-objectives.md`
 
 3. Schedule spaced review:
    - 1 day → 3 days → 1 week → 2 weeks → 1 month

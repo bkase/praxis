@@ -34,7 +34,8 @@ Guide the user through a reflective journaling session with empathetic coaching 
      - Set timestamp: `date +%Y-%m-%d-%H-%M-%S`
 4. Start tracking session time for duration calculation
 5. Read the weekly plan for this week. This is located in a `$(a4 root)/collections/weekly-plans/2025/week-YYYY-Wnn.md` if it exists, and you can get "nn" from `date +%V`
-6. Read all the journal entries of the prior 3 days if they exist for extra context on the user. Look at `$(a4 root)/collections/journals/YYYY/MM/journal-YYYY-MM-DD-{morning,evening}.md`
+6. Run `a4 today` to initialize the today's note
+7. Read all the journal entries of the prior 3 days if they exist for extra context on the user. Look at `$(a4 root)/collections/journals/YYYY/MM/journal-YYYY-MM-DD-{morning,evening}.md`
 
 ### REMIND
 
