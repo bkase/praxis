@@ -35,7 +35,7 @@ Guide the user through a reflective journaling session with empathetic coaching 
 4. Start tracking session time for duration calculation
 5. Read the weekly plan for this week. This is located in a `$(a4 root)/collections/weekly-plans/2025/week-YYYY-Wnn.md` if it exists, and you can get "nn" from `date +%V`
 6. Run `a4 today` to initialize the today's note
-7. Read all the journal entries of the prior 3 days if they exist for extra context on the user. Look at `$(a4 root)/collections/journals/YYYY/MM/journal-YYYY-MM-DD-{morning,evening}.md`
+7. Read all the daily notes + any linked content of the prior 3 days if they exist for extra context on the user. Look at `$(a4 root)/capture/YYYY/YYYY-MM/YYYY-MM-DD.md`. You can use the `find_note.sh` tool inside `a4 root` to jump to linked documents.
 
 ### REMIND
 
@@ -66,16 +66,18 @@ Move forward
 Start with these three questions presented together:
 
 - What are you grateful for?
-- How are you feeling?
-- What do you hope to get out of your day? If there was only one thing you could accomplish, what would it be? What's your focus? Is it aligned with your weekly plan, otherwise justify it.
+- How does my body feel right now? Where is my energy level?
+- What would this day look like if it were fun, playful, or approached with sincere enjoyment?
+- What do you hope to get out of your day? If there was only one thing you could accomplish, what would it be? What's your focus? Is it aligned with your weekly plan, otherwise justify it. When are you going to do it?
 
 **Transcript Building:**
 Add to the transcript (after the remind) with:
 transcript += "Good morning! Let's start with these three questions:
 
 - What are you grateful for?
-- How are you feeling?
-- What do you hope to get out of your day? If there was only one thing you could accomplish, what would it be? What's your focus? Is it aligned with your weekly plan, otherwise justify it.
+- How does my body feel right now? Where is my energy level?
+- What would this day look like if it were fun, playful, or approached with sincere enjoyment?
+- What do you hope to get out of your day? If there was only one thing you could accomplish, what would it be? What's your focus? Is it aligned with your weekly plan, otherwise justify it. When are you going to do it?
 
 User: "
 Then append each user response and coach reply to build complete record.
@@ -94,9 +96,10 @@ Then append each user response and coach reply to build complete record.
 
 2. **Start with these three questions presented together:**
 
-- How has your day been?
-- How are you feeling?
-- Is there anything in particular that stood out or felt significant?
+- What was one win from today?
+- What is one point of tension or anxiety I'm holding onto?
+- What is one thing I'm grateful for today?
+- Have I captured all open tasks and ideas from today? If not, add them to the daily note now
 - To what extent did your intention (either at the beginning of the week or in the morning) follow through with actions? Which actions did you do that you didn't intend? Do you regret it or are you happy about that?
 
 3. **Also if morning session was found, also consider asking:**
