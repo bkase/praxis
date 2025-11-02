@@ -4,7 +4,7 @@ import Observation
 import Sharing
 
 extension AppFeature {
-    enum MenuBarPhase: Equatable { case normal, approach, timeout }
+    enum MenuBarPhase: Equatable { case normal, approach, timeout, recording }
 
     @ObservableState
     struct State: Equatable {
@@ -18,6 +18,7 @@ extension AppFeature {
         var isLoading = false
         var reflectionPath: String?
         var menuBarPhase: MenuBarPhase = .normal
+        var screenRecording = ScreenRecordingFeature.State()
 
         init() {
             // Initialize destination based on shared state
@@ -43,6 +44,7 @@ extension AppFeature {
     @CasePathable
     enum Action: Equatable {
         case destination(PresentationAction<Destination.Action>)
+        case screenRecording(ScreenRecordingFeature.Action)
         case onAppear
         case sessionDataLoaded(SessionData?)
         case resetToIdle

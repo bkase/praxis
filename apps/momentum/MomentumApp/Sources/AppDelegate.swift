@@ -124,6 +124,18 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         notificationObservers.append(
             center.addObserver(
+                forName: .menuBarSetRecordingIcon,
+                object: nil,
+                queue: .main
+            ) { [weak statusBarController] _ in
+                Task { @MainActor in
+                    statusBarController?.setRecordingIcon()
+                }
+            }
+        )
+
+        notificationObservers.append(
+            center.addObserver(
                 forName: .showApproachMicroPopover,
                 object: nil,
                 queue: .main

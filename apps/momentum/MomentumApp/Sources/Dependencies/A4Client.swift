@@ -297,19 +297,19 @@ extension A4Client: DependencyKey {
             }
 
             let analysisSection =
-            """
-            ## AI Analysis
+                """
+                ## AI Analysis
 
-            \(analysisResult.summary)
+                \(analysisResult.summary)
 
-            ### Actionable Suggestions
+                ### Actionable Suggestions
 
-            \(analysisResult.suggestions)
+                \(analysisResult.suggestions)
 
-            ### Deeper Questions
+                ### Deeper Questions
 
-            \(analysisResult.questions)
-            """
+                \(analysisResult.questions)
+                """
 
             updatedReflection.append(analysisSection)
             try updatedReflection.write(to: reflectionURL, atomically: true, encoding: .utf8)
@@ -501,8 +501,10 @@ private func runZshCommand(_ command: String) async throws -> ProcessResult {
                 let outputData = stdoutPipe.fileHandleForReading.readDataToEndOfFile()
                 let errorData = stderrPipe.fileHandleForReading.readDataToEndOfFile()
 
-                let outputString = String(data: outputData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
-                let errorString = String(data: errorData, encoding: .utf8)?.trimmingCharacters(in: .whitespacesAndNewlines)
+                let outputString = String(data: outputData, encoding: .utf8)?.trimmingCharacters(
+                    in: .whitespacesAndNewlines)
+                let errorString = String(data: errorData, encoding: .utf8)?.trimmingCharacters(
+                    in: .whitespacesAndNewlines)
 
                 let result = ProcessResult(
                     output: outputString,

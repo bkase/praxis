@@ -1,7 +1,8 @@
 .PHONY: all test build clean swift-test swift-build swift-format swift-lint format lint install-tools tail-logs
 
 XCODE_DEVELOPER_PATH ?= /Applications/Xcode.app/Contents/Developer
-XCODE_ENV = env -u CC -u CXX -u OBJC -u OBJCXX -u SDKROOT -u CPATH -u LIBRARY_PATH -u NIX_CFLAGS_COMPILE -u NIX_LDFLAGS -u NIX_CFLAGS_LINK -u NIX_CC -u CFLAGS -u CXXFLAGS -u OBJCFLAGS -u LDFLAGS -u CPPFLAGS -u DYLD_LIBRARY_PATH
+XCODE_CLEAN_PATH = $(XCODE_DEVELOPER_PATH)/Toolchains/XcodeDefault.xctoolchain/usr/bin:$(XCODE_DEVELOPER_PATH)/usr/bin:/usr/local/bin:/usr/bin:/bin:/usr/sbin:/sbin:$$PATH
+XCODE_ENV = env -u CC -u CXX -u OBJC -u OBJCXX -u SDKROOT -u CPATH -u LIBRARY_PATH -u NIX_CFLAGS_COMPILE -u NIX_LDFLAGS -u NIX_CFLAGS_LINK -u NIX_CC -u CFLAGS -u CXXFLAGS -u OBJCFLAGS -u LDFLAGS -u CPPFLAGS -u DYLD_LIBRARY_PATH -u LD -u AR -u RANLIB PATH="$(XCODE_CLEAN_PATH)"
 
 # Default target
 all: build test

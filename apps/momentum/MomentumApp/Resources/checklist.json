@@ -7,5 +7,5 @@
   { "id": "check-disturb", "text": "Tell anyone around me to not disturb me for expected time" },
   { "id": "check-materials", "text": "Materials for the task in place. Physical and Virtual" },
   { "id": "check-water", "text": "Water or tea nearby" },
-  { "id": "check-start", "text": "Ready to start the timer" }
+  { "id": "check-learnings", "text": "Reviewed relevant prior sessions' learnings" }
 ]

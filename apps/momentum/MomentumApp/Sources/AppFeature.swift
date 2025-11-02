@@ -21,6 +21,28 @@ struct AppFeature {
     var body: some ReducerOf<Self> {
         Reduce { state, action in
             switch action {
+            case .screenRecording(.recordingStarted):
+                state.menuBarPhase = .recording
+                return .run { _ in
+                    await MainActor.run {
+                        NotificationCenter.default.post(name: .menuBarSetRecordingIcon, object: nil)
+                    }
+                }
+
+            case .screenRecording(.recordingStopped), .screenRecording(.recordingStartFailed):
+                if state.menuBarPhase == .recording {
+                    state.menuBarPhase = .normal
+                    return .run { _ in
+                        await MainActor.run {
+                            NotificationCenter.default.post(name: .menuBarSetNormalIcon, object: nil)
+                        }
+                    }
+                }
+                return .none
+
+            case .screenRecording:
+                return .none
+
             case .onAppear:
                 // Load session data from aethel first
                 return .run { send in
@@ -60,19 +82,21 @@ struct AppFeature {
                 }
                 if sessionData != nil {
                     state.menuBarPhase = .normal
-                    effects.append(.run { _ in
-                        await MainActor.run {
-                            NotificationCenter.default.post(name: .menuBarSetNormalIcon, object: nil)
-                        }
-                    })
+                    effects.append(
+                        .run { _ in
+                            await MainActor.run {
+                                NotificationCenter.default.post(name: .menuBarSetNormalIcon, object: nil)
+                            }
+                        })
                     effects.append(.send(.destination(.presented(.activeSession(.startTimers)))))
                 } else if state.menuBarPhase != .normal {
                     state.menuBarPhase = .normal
-                    effects.append(.run { _ in
-                        await MainActor.run {
-                            NotificationCenter.default.post(name: .menuBarSetNormalIcon, object: nil)
-                        }
-                    })
+                    effects.append(
+                        .run { _ in
+                            await MainActor.run {
+                                NotificationCenter.default.post(name: .menuBarSetNormalIcon, object: nil)
+                            }
+                        })
                 }
                 return .merge(effects)
 
@@ -109,7 +133,8 @@ struct AppFeature {
                             NotificationCenter.default.post(name: .menuBarSetNormalIcon, object: nil)
                         }
                     },
-                    .send(.destination(.presented(.activeSession(.startTimers))))
+                    .send(.destination(.presented(.activeSession(.startTimers)))),
+                    .send(.screenRecording(.startRecording(.default)))
                 )
 
             case let .destination(.presented(.preparation(.delegate(.sessionFailedToStart(error))))):
@@ -131,13 +156,16 @@ struct AppFeature {
                 state.destination = .reflection(ReflectionFeature.State(reflectionPath: reflectionPath))
                 if state.menuBarPhase != .normal {
                     state.menuBarPhase = .normal
-                    return .run { _ in
-                        await MainActor.run {
-                            NotificationCenter.default.post(name: .menuBarSetNormalIcon, object: nil)
-                        }
-                    }
+                    return .merge(
+                        .run { _ in
+                            await MainActor.run {
+                                NotificationCenter.default.post(name: .menuBarSetNormalIcon, object: nil)
+                            }
+                        },
+                        .send(.screenRecording(.stopRecording))
+                    )
                 }
-                return .none
+                return .send(.screenRecording(.stopRecording))
 
             case let .destination(.presented(.activeSession(.delegate(.sessionFailedToStop(error))))):
                 // Handle failed session stop from ActiveSessionFeature
@@ -272,5 +300,9 @@ struct AppFeature {
             }
         }
         .ifLet(\.$destination, action: \.destination)
+
+        Scope(state: \.screenRecording, action: \.screenRecording) {
+            ScreenRecordingFeature()
+        }
     }
 }

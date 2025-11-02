@@ -294,6 +294,7 @@ import Network
         static let menuBarSetApproachIcon = Notification.Name("menuBarSetApproachIcon")
         static let menuBarSetTimeoutIcon = Notification.Name("menuBarSetTimeoutIcon")
         static let menuBarSetNormalIcon = Notification.Name("menuBarSetNormalIcon")
+        static let menuBarSetRecordingIcon = Notification.Name("menuBarSetRecordingIcon")
         static let showApproachMicroPopover = Notification.Name("showApproachMicroPopover")
         static let showTimeoutMicroPopover = Notification.Name("showTimeoutMicroPopover")
     }

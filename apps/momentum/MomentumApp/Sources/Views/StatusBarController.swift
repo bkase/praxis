@@ -73,19 +73,33 @@ final class StatusBarController: NSObject {
 
     func setNormalIcon() {
         statusItem?.button?.image = NSImage(systemSymbolName: "timer", accessibilityDescription: "Momentum")
+        statusItem?.button?.contentTintColor = nil
         closeMiniPopover()
     }
 
     func setApproachIcon() {
-        let image = NSImage(systemSymbolName: "hourglass", accessibilityDescription: "Approaching end")
+        let image =
+            NSImage(systemSymbolName: "hourglass", accessibilityDescription: "Approaching end")
             ?? NSImage(systemSymbolName: "timer", accessibilityDescription: "Approaching end")
         statusItem?.button?.image = image
+        statusItem?.button?.contentTintColor = nil
     }
 
     func setTimeoutIcon() {
-        let image = NSImage(systemSymbolName: "hourglass.bottomhalf.filled", accessibilityDescription: "Session complete")
+        let image =
+            NSImage(systemSymbolName: "hourglass.bottomhalf.filled", accessibilityDescription: "Session complete")
             ?? NSImage(systemSymbolName: "hourglass", accessibilityDescription: "Session complete")
         statusItem?.button?.image = image
+        statusItem?.button?.contentTintColor = nil
+    }
+
+    func setRecordingIcon() {
+        let image =
+            NSImage(systemSymbolName: "record.circle.fill", accessibilityDescription: "Recording")
+            ?? NSImage(systemSymbolName: "circle.fill", accessibilityDescription: "Recording")
+        statusItem?.button?.image = image
+        // Set the image to be red
+        statusItem?.button?.contentTintColor = .systemRed
     }
 
     func showMini(text: String) {
