@@ -1,20 +1,34 @@
-# Weekly Reflection Questions
 
-## Specific questions
+---
 
-- What was my biggest win of the week? What were my accomplishments (big or small)? What gave me energy? What brought me joy or a sense of pride? How can I make more time for those things?
-- What was my biggest struggle of the week? What challenges or obstacles did I face? What drained my energy this week? How can I reduce time spent on those things?
-- What felt neglected (health, relationships, hobbies)? How can I make more time for these?
+```markdown
+weekly-reflection-questions.md:
+# Weekly Reflection Questions (v2) — Scoreboard → Principles → Adjustments
 
-## Question seeds (to be customized by relevant context from the week)
+## Layer 0 (core; short answers)
+1) Floors (A–F): which did I meet? which broke first? why?
+2) Deep work: how many 2h+ blocks happened? what prevented the rest?
+3) Proof: what shipped? (Project 1 ships; Project 2 ships)
+4) Pride (1–5) + Wonder (1–5): what drove each?
+5) Remove one thing next week (drop, delegate, defer).
 
-- How well did you balance your different roles?
-- Did my actions align with my long-term goals?
-- What unexpected opportunities or insights arose?
+## Layer 1 (recommended)
+6) Principles check:
+   - Balance: did the *week* feel nourished (even if some days weren’t)?
+   - Momentum: what early actions worked? what mornings got hijacked?
+   - Wonder: did wonder stay bounded or steal from the other 3?
+   - Excellence: when did I strive for excellence? what conditions helped?
 
-## Specific takeaway identification question
+7) Excellence notes (pattern mining):
+   - What made excellence easier?
+   - What made excellence harder?
+   - One quality move I want to repeat next week.
 
-- What would you like to carry forward into next week?
-- What would you like to adjust about the weekly planning process if anything?
-- What do I want to learn by the end of this week?
-- What is one thing I will try that gets me out of my comfort zone?
+8) Avoidance / discomfort:
+   - Where did I avoid a hard conversation/task?
+   - What’s one discomfort rep next week?
+
+## Layer 2 (optional)
+9) Stacking: which stacks created overlap (people/health/building/reflection)? which stacks failed?
+10) What experiment do I want to run next week to reduce friction?
+11) Any meaningful social encounters or “challenge moments” worth designing more of?

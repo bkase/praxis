@@ -1,253 +1,330 @@
+weekly-plan.md:
 ---
 allowed-tools: Read, Write, Bash(date), mcp_google_calendar_*
-description: Plan your week with anchored flexibility and role-based activities
+description: Principles-first weekly reflection & planning with floors, project scope-locks, proof, and anchored flexibility
 argument-hint: [reflection|plan|review]
 ---
 
-# Weekly Planning with Anchored Flexibility
+# Weekly Planning (v2): Principles → Floors → Projects → Anchors → Flex
 
-Guide the user through a comprehensive weekly planning session using role-based activity allocation and time blocking with Google Calendar integration.
-
-## Overview
-
-This command implements an anchored flexibility system where:
-
-- Each day has 5 two-hour blocks (1 morning, 2 afternoon, 2 evening)
-- Activities are planned by embodying different life roles
-- Focus sessions are 60-90 minutes within 2-hour blocks
-- The week is balanced holistically, not necessarily each day
-- Previous week's reflection informs current planning
+This command implements a process-first system:
+- **Principles** drive choices: Balance (weekly), Momentum (early), Wonder (bounded), Excellence (process)
+- **Floors** are weekly standards (A–F). We plan to hit them.
+- **Projects** are WIP-limited (2). We scope-lock weekly (not 6-week rigid plans).
+- **Schedule** is *anchors only* (deep work blocks + key commitments), preserving white space.
+- **Proof** is required weekly: crumb/slice/ship artifacts, with excellence check.
 
 ## Configuration Files
+Reads:
+- `weekly-reflection-questions.md` (updated to match this system)
+- `weekly-roles.md` (used as "weekly nourishment check", not full scheduling)
 
-This command reads from two configuration files in the working directory:
+## Key Concepts (used throughout)
 
-- `weekly-reflection-questions.md`: Customizable reflection questions
-- `weekly-roles.md`: List of roles for activity planning
+### The 4 Principles (read at start of planning)
+1) **Balance (weekly, not daily)**
+2) **Momentum (early actions compound)**
+3) **Wonder (bounded; cannot steal from the other 3)**
+4) **Pursuit of excellence (serious striving, not perfectionism)**
 
-## Workflow Phases
+### Floors (A–F) (weekly standards)
+A) Physical Health (sleep/diet/exercise)
+B) Reflection + planning
+C) Deep work: **≥ 6 blocks/week, each 2h+**
+D) Curiosity: **≤ 4 hours/week (hard cap)**
+E) White space: **≥ 3 unscheduled half-days/week**
+F) Gigi: **≥ 1 intentional date/week**
 
-### PHASE 0: INITIALIZATION
+### Projects
+- WIP=2 "Now" projects.
+- Weekly scope-lock per project:
+  - Weekly Focus (1 sentence)
+  - In-scope (max 3 bullets)
+  - Out-of-scope (max 3 bullets)
+  - Weekly Ship (1 sentence artifact)
 
-1. Get current date: `date +%Y-%m-%d` ; if this is Sunday, then this is the start of the next week.
-2. Calculate week start (Monday) and end (Sunday) dates
-3. Get ISO week number: `date +%V` (for the week being planned)
-4. Set week file name: `week-YYYY-Wnn.md` (e.g., `week-2025-W38.md`)
-5. Check if current week file exists, `"$(a4 root)/weekly-plans/2025/week-YYYY-Wnn.md"`
-6. If exists and contains reflection, skip to PHASE 2
-7. Show user current phase: "📅 Starting weekly planning for [dates]"
+### Proof ladder
+- Crumb (10–30 min), Slice (1–3h), Ship (weekly)
+- Each deep work block ends with a proof artifact + excellence check.
 
-### PHASE 1: WEEKLY REFLECTION
+---
 
-**Always run this phase for new week planning**
+# Layered Workflow
+Run **Layer 0** always. If you run low on time, stop after Layer 0.
 
-1. Read related files from the prior week `$(a4 root)/weekly-plans/2025/week-YYYY-Wnn` and all the daily notes from that week `a4 today` to get the path, and look for anything from those other days. Look for slugs with the `find-note.sh` tool in `$(a4 root)` too. Read all files linked to this week!
-2. Show user: "📝 Phase 1: Weekly Reflection"
-3. Read questions from `weekly-reflection-questions.md` and sprinkle in extra context from the week too.
-4. If file doesn't exist, send error to the user and quit
-5. Remind the user about all the activities that they said they would do last week (show them to the user)
-6. Present all questions at once to the user
-7. Collect responses and ask deeper follow questions, and tell the user:
-   "Press 'y' to end the reflection"
-8. Repeat 6 until the user sends 'y'
-9. Format reflection section for the week file
+## LAYER 0 — Core (must-do)
+**Output:** week file with (1) last week scoreboard, (2) floors plan, (3) 2 project scope-locks, (4) anchor schedule.
 
-### PHASE 2: WEEK STRUCTURE SETUP
+### PHASE 0: Initialization
+1) Get current date: `date +%Y-%m-%d`
+2) Compute planned week start/end (Mon–Sun) and ISO week number `date +%V`
+3) Set week file: `week-YYYY-Wnn.md`
+4) Locate storage path: `"$(a4 root)/collections/weekly-plans/YYYY/week-YYYY-Wnn.md"`
+5) Locate last week file (YYYY-Wnn-1) if exists
+6) Show: "📅 Starting weekly planning for [week_start → week_end]"
 
-1. Show user: "⚙️ Phase 2: Setting Up Week Structure"
-2. Ask user to define time blocks for the week:
+### PHASE 1: Last Week Closeout (Scoreboard-first reflection)
+**Goal:** convert last week into a few decisions, not a long essay.
 
-   ```
-   Please specify the time ranges for your daily blocks:
-   - Morning block (default: 09:00-11:00):
-   - Afternoon block 1 (default: 14:00-16:00):
-   - Afternoon block 2 (default: 16:00-18:00):
-   - Evening block 1 (default: 19:00-21:00):
-   - Evening block 2 (default: 21:00-23:00):
-   ```
+1) Read last week’s file (if exists) + daily notes from the week
+2) Extract and display:
+   - Floors (A–F): met? trends? which broke first?
+   - Deep work blocks completed count (2h+)
+   - Proof shipped count per project (ships + any proof points you track)
+   - Pride/Wonder trend (if logged)
+3) Ask the user to answer (short):
+   - What *worked* (1–3 bullets)?
+   - What *didn’t* (1–3 bullets)?
+   - What will I *remove* next week (1–2 bullets)?
+   - Any avoidance/discomfort moments to face next week (optional 1 bullet)?
 
-3. Ask about constraints:
+Write this into the week file under "Last Week Closeout".
 
-   ```
-   Do you have any fixed commitments this week?
-   Please list them with day and time block (e.g., "Tuesday afternoon 1: Team meeting")
-   ```
+### PHASE 2: Floors Plan (A–F) — lock the container
+**Goal:** floors get planned before projects and scheduling.
 
-4. Store time blocks in memory for front matter metadata. Keep constraints in memory for later use in the body content only (do not include them in the file's front matter).
+Ask the user to confirm/choose:
+1) **Sleep plan (process targets):**
+   - In bed 11, asleep by 12, wake+sunlight by 9:30
+   - Weekly threshold (default): ≥ 5 days/week hit all 3
 
-### PHASE 3: ROLE-BASED ACTIVITY PLANNING
+2) **Diet plan:**
+   - Creatine daily; protein priority; sugar only evening and max once/day
+   - Weekly thresholds (defaults): creatine ≥ 6/7, protein ≥ 5/7, sugar rule ≥ 5/7
 
-1. Show user: "🎭 Phase 3: Planning Activities by Role"
-2. First, ask orientation questions:
+3) **Exercise plan:**
+   - Small morning movement (default: 5–15 min) ≥ 5/7
+   - One big session: Nikki or class ≥ 1/week
+   - Ask user to pick a target day/time window for the big session
 
-   ```
-   Before we plan your activities, let's set your focus for the week:
+4) **Reflection plan:**
+   - Daily morning intention ≥ 5/7
+   - Daily evening review ≥ 5/7
+   - Weekly review must happen by end of Wed if slipped
 
-   What are your top 3 outcomes for the upcoming week?
-   (These should be specific, meaningful results you want to achieve)
-   ```
+5) **Deep work plan:**
+   - ≥ 6 blocks/week, each 2h+
+   - Ask user: preferred time windows for deep work blocks this week (optional)
 
-3. Store the top 3 outcomes in memory for later inclusion in the week file
-4. Read roles from `weekly-roles.md`
-5. If file doesn't exist, send error to the user and quit
-6. Present all roles at once:
+6) **Curiosity cap plan:**
+   - ≤ 4h/week (hard cap)
+   - Ask user: do you want to aim for ~4h or intentionally lower this week?
 
-   ```
-   For each role below, list activities you want to schedule this week.
-   Include any constraints (e.g., "mornings only", "3 sessions", "Tuesday specific")
+7) **White space plan:**
+   - ≥ 3 unscheduled half-days
+   - Ask the user to choose *which* 3 half-days to protect (e.g., Tue PM, Thu AM, Sun PM).
+   - If user doesn’t choose, select the 3 least constrained half-days based on calendar.
 
-   [List all roles]
-   ```
+8) **Gigi date plan:**
+   - ≥ 1 intentional date
+   - Ask user to pick a day/time window.
 
-7. Parse user response for:
-   - Activities per role
-   - Number of slots needed
-   - Timing constraints
-   - Priority levels
+Write floors into the week file as a "Floors Plan" section with checkboxes and chosen anchor windows.
 
-### PHASE 4: SCHEDULE OPTIMIZATION
+### PHASE 3: Projects (WIP=2) + Weekly Scope-Lock (week-level boundaries)
+**Goal:** keep outcomes light; lock weekly focus so the week is coherent.
 
-1. Show user: "🗓️ Phase 4: Creating Your Schedule"
-2. Start from the current time -- if the user is running this workflow Monday at midnight, only start on Tuesday when allocating time slots!
-3. Algorithm for slot assignment:
-   - First, place all constrained activities
-   - Distribute remaining activities to balance roles across the week
-   - Ensure orthogonality (mix different roles each day)
-   - Leave gaps evenly distributed if not all slots filled
-4. Present proposed schedule:
+1) Confirm the two active projects ("Now").
+2) For each project, ask the user to fill:
 
-   ```
-   Here's your proposed weekly schedule:
+**Project Scope-Lock template**
+- Weekly Focus (1 sentence)
+- In-scope (max 3 bullets)
+- Out-of-scope (max 3 bullets)
+- Weekly Ship (1 sentence artifact)
+- Deep work blocks allocated this week (number + preferred days)
 
-   MONDAY
-   Morning (09:00-11:00): [Activity] (Role)
-   Afternoon 1 (14:00-16:00): [Activity] (Role)
-   Afternoon 2 (16:00-18:00): [Activity] (Role)
-   Evening 1 (19:00-21:00): [Activity] (Role)
-   Evening 2 (21:00-23:00): [Activity] (Role)
+3) Add the **Weekly Scope Integrity rule**:
+- Aim for ≥ 80% of deep blocks to match the weekly focus.
+- If not, note why during next weekly review.
 
-   [Continue for all days...]
-   ```
+Write this into the week file under "Projects & Scope-Locks".
 
-5. Ask: "Does this schedule work for you? (yes/adjustments needed)"
-6. If adjustments needed:
-   - Collect specific changes
-   - Regenerate schedule with modifications
-   - Present again for approval
+### PHASE 4: Anchor Scheduling (anchored flexibility; preserve free space)
+**Goal:** schedule only anchors; do NOT schedule the whole week.
 
-### PHASE 5: FINALIZE AND SAVE
+1) Pull fixed commitments from Google Calendar (if available).
+2) Place anchors:
+   - 6 deep work blocks (2h+)
+   - Weekly review block (if you want it calendared)
+   - Gigi date block
+   - Big exercise session block
+   - Optional: 1 curiosity session (bounded) if desired
+3) Ensure the three protected white-space half-days remain unscheduled.
+4) Present a compact "Anchor Schedule" (not full-day blocks).
+5) If Calendar MCP available:
+   - Clear and recreate events only on the "Idealized Week" calendar (or your chosen one)
+   - Create events for anchors only (deep blocks, date, big workout, weekly review)
+   - Do not create events inside protected white-space half-days
 
-1. Show user: "💾 Phase 5: Saving Your Plan"
-2. Create week file with structure:
+Write schedule into the week file.
 
-   ```markdown
-   ---
-   kind: weekly.plan
-   week_start: YYYY-MM-DD
-   week_end: YYYY-MM-DD
-   time_blocks:
-     morning: "HH:MM-HH:MM"
-     afternoon_1: "HH:MM-HH:MM"
-     afternoon_2: "HH:MM-HH:MM"
-     evening_1: "HH:MM-HH:MM"
-     evening_2: "HH:MM-HH:MM"
-   tags: [weekly, Wnn]
-   ---
+### PHASE 5: Save + Weekly Summary
+1) Save week file to disk.
+2) Generate $SUMMARY (short) and append to daily note with `a4 append`.
 
-   # Week {{YYYY-Wnn}}
+$SUMMARY should include:
+- link to week file
+- floors (deep work target, curiosity cap, white space count, date planned)
+- the two projects + weekly focus + weekly ship (one line each)
+- anchor highlights (5 bullets max)
 
-   ## Last Week's Reflection
+Confirm: "✅ Week planned and saved to [filename]"
 
-   [Reflection content from Phase 1]
+---
 
-   ## Top 3 Outcomes for This Week
+## LAYER 1 — Strong (recommended if time)
+**Output:** stack blocks chosen + weekly balance check + content hook.
 
-   1. [Outcome 1]
-   2. [Outcome 2]
-   3. [Outcome 3]
+### PHASE 6: Stack Map (choose 3–5 stack blocks for the week)
+Ask user to choose 3–5 from a stack map menu (kept in the week file), e.g.:
+- walk+sunlight+call (health+people)
+- cowork+ship packaging (people+building)
+- yogurt/protein+morning intention (diet+reflection)
+- dinner prep+evening review+capture refinement (diet+planning)
+- wonder outing (bounded curiosity)
+- post-ship content drafting while warm (builder+content)
 
-   ## Schedule
+Write "Selected Stack Blocks" into the week file.
+Optionally schedule 1–2 stack blocks if they are scarce resources; otherwise keep as a menu.
 
-   ### Monday
+### PHASE 7: Weekly Nourishment Check (roles as balance lens, not scheduling)
+Read roles from `weekly-roles.md`, then ask:
+- Which roles are naturally covered by floors + project anchors?
+- Which 1–2 roles might be neglected this week?
+- Add at most 1–2 “nice-to-have” items to the week file under "Optional Menu" (not scheduled).
 
-   [Formatted schedule]
+### PHASE 8: Content hook (build/learn in public)
+Ask:
+- Which project ship will become public content this week?
+- When is the best day to draft it (optional to schedule)?
+Write under "Public Learning".
 
-   ## Activities by Role
+---
 
-   ### [Role Name]
+## LAYER 2 — Deep (optional)
+**Output:** micro-experiments + friction removal plan.
 
-   - [Activity] ([number] slots)
-   ```
+### PHASE 9: System iteration (one friction per week)
+Ask:
+- What was the biggest friction in the system last week?
+- Choose exactly one friction to reduce this week.
+- Define a tiny ship for that (template, script, terminal banner, etc.).
+Write under "System Iteration".
 
-3. Write file to disk at `"$(a4 root)/collections/weekly-plans/2025/week-YYYY-Wnn.md"`, ensuring:
-   - Every heading is followed by a blank line before content begins
-   - Role labels appear in parentheses (e.g., "Call with Gigi (Partner)")
-4. Generate some summary markdown, `$SUMMARY`, containing the outcomes (1,2,3) and a summary of the schedule (5 bullets max), eg.
+### PHASE 10: Discomfort rep (optional)
+Ask:
+- What is one avoided conversation/action you’ll face this week?
+Write under "Discomfort Rep".
+
+---
+
+# Modes
+
+## Review Mode (`$ARGUMENTS` = "review")
+1) Read current week file.
+2) Display:
+   - Floors plan + current progress if tracked
+   - Projects scope-locks (focus/in/out/ship)
+   - Anchor schedule
+   - Stack blocks selected (if any)
+
+## Reflection Only (`$ARGUMENTS` = "reflection")
+Run only Phase 1 and append to current week file.
+
+## Plan Only (`$ARGUMENTS` = "plan" or default)
+Run full process: Layer 0 + optional Layer 1/2 if time.
+
+---
+
+# Week File Template (written in Phase 5)
 
 ```markdown
-[[week-YYYY-Wnn|W38]]
+---
+kind: weekly.plan
+week_start: YYYY-MM-DD
+week_end: YYYY-MM-DD
+tags: [weekly, Wnn]
+principles: [balance_weekly, momentum, wonder_bounded, excellence_process]
+wip_limit: 2
+---
 
-### Top 3 Outcomes
+# Week YYYY-Wnn
 
-1.  [Outcome 1]
-2.  [Outcome 2]
-3.  [Outcome 3]
+## Principles
+- Balance (weekly)
+- Momentum (early)
+- Wonder (bounded)
+- Excellence (process)
 
-### Activities
+## Last Week Closeout (Scoreboard)
+- Floors: A __ / B __ / C __ / D __ / E __ / F __
+- Deep blocks (2h+): __ / 6
+- Ships: Project 1 __ / Project 2 __
+- Pride/Wonder trend: __ / __
+- Worked:
+- Didn’t:
+- Remove:
+- Avoidance/discomfort notes (optional):
 
-- Coding on my app
-- Meeting with friends: David, Gigi, Fred
-- Attending meetings on the weekdays
-- Attend a few exercise classes on [[2025-09-16|Tuesday]] and [[2025-09-18|Thursday]]
-- Go on a hike on [[2025-09-20]]
-```
+## Floors Plan (A–F)
+### A) Physical
+- Sleep targets: bed 11 / asleep 12 / sunlight by 9:30 (threshold ≥5/7)
+- Diet: creatine daily (≥6/7), protein priority (≥5/7), sugar evening-only once/day (≥5/7)
+- Exercise: morning movement ≥5/7; big session ≥1/week (when: ____)
 
-4. Append to daily note `a4 append --heading "Weekly Plan" --anchor "weekly" --today --text "$SUMMARY"`
-5. Confirm: "✅ Week planned and saved to [filename]"
-6. If Google Calendar MCP is available:
-   - Remove all existing calendar events this week in the Idealized Week calendar if there are any
-   - Create calendar events for each scheduled activity using the Idealized Week calendar
-   - Use my current timezone unless otherwise specified
-   - Use 2-hour blocks with activity name
-   - Add role as event description
-   - Color-code by role if possible
-7. Confirm: "✅ Week saved into calendar"
+### B) Reflection & Planning
+- Morning intention ≥5/7
+- Evening review ≥5/7
+- Weekly review: Sat/Sun/Mon preferred; must by Wed if slipped
 
-## Additional Commands
+### C) Deep Work
+- Plan: 6 blocks/week, 2h+ each
 
-### Review Mode (`$ARGUMENTS` = "review")
+### D) Curiosity
+- Cap: ≤ 4h/week (aim: ____)
 
-1. Read current week's file
-2. Display the top 3 outcomes that were set for the week
-3. Display schedule in readable format
-4. Show progress indicators if available
+### E) White Space
+- Protect 3 unscheduled half-days:
+  - __
+  - __
+  - __
 
-### Reflection Only (`$ARGUMENTS` = "reflection")
+### F) Gigi Date
+- Date: ____ (day/time window)
 
-1. Run only Phase 1
-2. Append to current week's file
+## Projects & Weekly Scope-Locks (WIP=2)
+### Project 1: ______
+- Weekly Focus:
+- In-scope (≤3):
+- Out-of-scope (≤3):
+- Weekly Ship:
+- Planned deep blocks (# + preferred days):
 
-## Error Handling
+### Project 2: ______
+- Weekly Focus:
+- In-scope (≤3):
+- Out-of-scope (≤3):
+- Weekly Ship:
+- Planned deep blocks (# + preferred days):
 
-- If configuration files missing: Use defaults and notify user
-- If week file corrupted: Backup and create new
-- If Calendar MCP fails: Continue with local file only
-- Always preserve user data in case of errors
+## Anchor Schedule (anchors only)
+- Deep blocks:
+  - ...
+- Big exercise:
+- Gigi date:
+- Weekly review:
 
-## Usage Examples
+## Selected Stack Blocks (optional)
+- ...
 
-```bash
-/weekly-plan          # Full planning session
-/weekly-plan review   # Review current week
-/weekly-plan reflection # Add reflection only
-```
+## Optional Menu (optional)
+- ...
 
-## Notes
+## Public Learning (optional)
+- Ship-to-content plan:
+- Draft window:
 
-- Focus sessions are 60-90 minutes within 2-hour blocks
-- Extra time allows for transitions and breaks
-- Week starts Monday, ends Sunday
-- Week files use ISO week format: `week-YYYY-Wnn.md` (e.g., `week-2025-W38.md`)
-- Balance across week, not necessarily each day
-- Calendar is projection of markdown file (source of truth)
-- Do not store weekly constraints in the front matter; capture them within the body content if needed
+## System Iteration (optional)
+- Friction:
+- Tiny ship:
