@@ -132,8 +132,8 @@ Ask these together:
 
 5. **Two-project crumbs**
 
-- "Project Q crumb today:"
-- "Project E crumb today:"
+- "GBxCuLE Learning Lab (formerly Project Q) crumb today:"
+- "Ambient OS (formerly Project E) crumb today:"
 
 6. **Excellence rep**
 
@@ -195,9 +195,9 @@ Ask these together:
 
 2. **Proof check (per project)**
 
-- "What proof exists now that didn’t exist this morning?"
-  - Project Q: crumb/slice/ship (list it)
-  - Project E: crumb/slice/ship (list it)
+- "What proof exists now that didn't exist this morning?"
+  - GBxCuLE Learning Lab (formerly Project Q): crumb/slice/ship (list it)
+  - Ambient OS (formerly Project E): crumb/slice/ship (list it)
 - "Any quality bonus moves? (test/doc/bench/cleanup/feedback/polish)"
 
 3. **Excellence check (process, not outcome)**
