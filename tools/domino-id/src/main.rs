@@ -216,8 +216,8 @@ pub fn list_existing_ids(project_path: &Path) -> Result<HashSet<String>, String>
         ids.extend(extract_ids_from_frontmatter(&content));
     }
 
-    // 2. Parse IDs from log.jsonl file
-    let log_path = project_path.with_extension("log.jsonl");
+    // 2. Parse IDs from log.jsonl file (in same directory as project file)
+    let log_path = project_path.parent().map(|p| p.join("log.jsonl")).unwrap_or_else(|| "log.jsonl".into());
     if log_path.exists() {
         let file = fs::File::open(&log_path)
             .map_err(|e| format!("Failed to open log file: {e}"))?;
@@ -404,8 +404,10 @@ dominoes:
     #[test]
     fn test_list_existing_ids_with_log() {
         let tmp_dir = TempDir::new().unwrap();
-        let project_path = tmp_dir.path().join("test-project.md");
-        let log_path = tmp_dir.path().join("test-project.log.jsonl");
+        let project_dir = tmp_dir.path().join("test-project");
+        fs::create_dir(&project_dir).unwrap();
+        let project_path = project_dir.join("index.md");
+        let log_path = project_dir.join("log.jsonl");
 
         // Create project file with structured domino
         fs::write(&project_path, r#"---
@@ -429,7 +431,9 @@ dominoes:
     #[test]
     fn test_generate_domino_id_integration() {
         let tmp_dir = TempDir::new().unwrap();
-        let project_path = tmp_dir.path().join("test-project.md");
+        let project_dir = tmp_dir.path().join("test-project");
+        fs::create_dir(&project_dir).unwrap();
+        let project_path = project_dir.join("index.md");
 
         // Create empty project file
         fs::write(&project_path, r#"---

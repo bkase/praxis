@@ -1,5 +1,5 @@
 ---
-allowed-tools: Bash(domino-id, date), Read, Write, Edit
+allowed-tools: Bash(bin/domino-id, date), Read, Write, Edit
 description: Generate unique domino IDs for project tasks and manage project logs
 argument-hint: [generate|log|list] <project-name> [task-description]
 ---
@@ -8,6 +8,14 @@ argument-hint: [generate|log|list] <project-name> [task-description]
 
 Generate unique IDs for project domino tasks and manage project work logs.
 
+## Project Structure
+
+```
+projects/<project-name>/
+├── index.md      # Project definition with YAML frontmatter
+└── log.jsonl     # Work log
+```
+
 ## Commands
 
 ### Generate a new domino ID
@@ -15,7 +23,7 @@ Generate unique IDs for project domino tasks and manage project work logs.
 When user wants to create a new domino with an ID:
 
 ```bash
-bin/domino-id generate --project projects/<project-name>.md --task "<task description>"
+bin/domino-id generate --project projects/<project-name>/index.md --task "<task description>"
 ```
 
 This outputs a unique ID like `d-1w3`.
@@ -23,12 +31,12 @@ This outputs a unique ID like `d-1w3`.
 ### List existing domino IDs
 
 ```bash
-bin/domino-id list --project projects/<project-name>.md
+bin/domino-id list --project projects/<project-name>/index.md
 ```
 
 ### Log work done
 
-When user wants to log work, create a JSONL entry in `projects/<project-name>.log.jsonl`:
+When user wants to log work, append a JSONL entry to `projects/<project-name>/log.jsonl`:
 
 ```jsonl
 {"ts":"<ISO8601-UTC>","what":"<description>"}
@@ -41,8 +49,8 @@ Get timestamp with: `date -u +%Y-%m-%dT%H:%M:%SZ`
 
 ### Adding a new domino to a project:
 
-1. Generate ID: `bin/domino-id generate -p projects/<name>.md -t "<task>"`
-2. Add to project frontmatter:
+1. Generate ID: `bin/domino-id generate -p projects/<name>/index.md -t "<task>"`
+2. Add to project frontmatter in `projects/<name>/index.md`:
    ```yaml
    dominoes:
      - id: d-xxx
@@ -52,18 +60,19 @@ Get timestamp with: `date -u +%Y-%m-%dT%H:%M:%SZ`
 ### Completing a domino:
 
 1. Remove from project frontmatter (or mark done)
-2. Log completion:
+2. Log completion in `projects/<name>/log.jsonl`:
    ```jsonl
    {"ts":"2026-01-20T12:00:00Z","what":"Completed: <what you did>","dominoes":["d-xxx"]}
    ```
 
 ### Logging work (no domino):
 
+Append to `projects/<name>/log.jsonl`:
 ```jsonl
 {"ts":"2026-01-20T12:00:00Z","what":"<what you did>"}
 ```
 
-## Project file format
+## Project file format (index.md)
 
 ```yaml
 ---
@@ -77,9 +86,9 @@ dominoes:
 ---
 ```
 
-## Log file format
+## Log file format (log.jsonl)
 
-One JSON object per line in `projects/<name>.log.jsonl`:
+One JSON object per line:
 - `ts` — ISO 8601 UTC timestamp (required)
 - `what` — description of work done (required)
 - `dominoes` — array of completed domino IDs (optional)
