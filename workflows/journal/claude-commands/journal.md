@@ -116,35 +116,39 @@ Ask these together:
 
 - "How does your body feel right now? Energy 1–5?"
 
-2. **Principles**
+2. **Gratitude quick check**
+
+- "What's one thing you're grateful for right now?"
+
+3. **Principles**
 
 - "What does Balance/Momentum/Wonder/Excellence look like _today_ in one sentence each?"
   (Keep it simple—no essays.)
 
-3. **Floors-at-risk**
+4. **Floors-at-risk**
 
 - "Which floor is most at risk today (sleep/diet/exercise/reflection/deep work/curiosity cap/white space/date)?"
 - "What is one protective action?"
 
-4. **Momentum: first domino**
+5. **Momentum: first domino**
 
 - "What is your first domino crumb (10–30 min) you will do _early_?"
 
-5. **Two-project crumbs**
+6. **Two-project crumbs**
 
 - "GBxCuLE Learning Lab (formerly Project Q) crumb today:"
 - "Ambient OS (formerly Project E) crumb today:"
 
-6. **Excellence rep**
+7. **Excellence rep**
 
-- "What is the single quality move you’ll aim for in your next deep block?"
+- "What is the single quality move you'll aim for in your next deep block?"
   (test/doc/benchmark/cleanup/clarity/feedback)
 
-7. **Bounded wonder seed**
+8. **Bounded wonder seed**
 
-- "What is one small wonder seed (bounded) you’ll do _without stealing the day_?"
+- "What is one small wonder seed (bounded) you'll do _without stealing the day_?"
 
-8. **Time placement**
+9. **Time placement**
 
 - "When is your first deep block today (or tomorrow morning if today is chaos)?"
 
